@@ -12,3 +12,6 @@ data/policy.json
 # 凭据
 .env
 *.log
+
+# Editor
+.zcode/

@@ -10,7 +10,7 @@
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",
     "build": "tsc",
-    "serve": "node dist/index.js",
+    "serve": "node dist/src/index.js",
     "test:e2e": "tsx scripts/test-e2e.ts",
     "bootstrap": "tsx scripts/bootstrap.ts",
     "typecheck": "tsc --noEmit"

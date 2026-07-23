@@ -18,8 +18,13 @@ WORKDIR /app
 # 先拷依赖清单（利用 Docker 层缓存）
 COPY package.json package-lock.json* ./
 
-# 安装全部依赖（含 devDependencies，用于 tsc 编译）
-RUN npm ci
+# 安装全部依赖（含 devDependencies，用于 tsc 编译）。
+# better-sqlite3 v13 的预编译二进制要求 GLIBC 2.38，但 Debian 12 只有 2.36，
+# 必须从源码编译。npm_config_build_from_source 对 v13 不生效，
+# 改为：安装后删除 prebuilds 目录，强制 rebuild 触发 node-gyp 本地编译。
+RUN npm ci \
+    && rm -rf node_modules/better-sqlite3/prebuilds \
+    && npm rebuild better-sqlite3 --build-from-source
 
 # 拷源码并编译
 COPY tsconfig.json ./
@@ -53,6 +58,7 @@ EXPOSE 3001
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3001)+'/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
-# 用编译后的 JS 启动（不用 tsx，更轻量）
+# 用编译后的 JS 启动（不用 tsx，更轻量）。
+# 注意：rootDir 为项目根，编译产物在 dist/src/ 下。
 ENV NODE_ENV=production
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/src/index.js"]
