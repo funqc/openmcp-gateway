@@ -1,0 +1,148 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "NAS Files Service",
+    "version": "1.0.0",
+    "description": "Demo NAS file-management service used to exercise the OpenMCP Gateway."
+  },
+  "servers": [
+    { "url": "http://your-nas-host:5000" }
+  ],
+  "tags": [
+    { "name": "files", "description": "File operations" },
+    { "name": "shares", "description": "Network share management" }
+  ],
+  "paths": {
+    "/files": {
+      "get": {
+        "operationId": "listFiles",
+        "summary": "List files in a directory",
+        "description": "Returns a paginated list of files under the given path on the NAS.",
+        "tags": ["files"],
+        "parameters": [
+          { "name": "path", "in": "query", "description": "Directory path (default: root)", "required": false, "schema": { "type": "string", "default": "/" } },
+          { "name": "limit", "in": "query", "description": "Max items to return", "required": false, "schema": { "type": "integer", "minimum": 1, "maximum": 500, "default": 50 } }
+        ],
+        "responses": {
+          "200": {
+            "description": "File listing",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/FileList" } } }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createFile",
+        "summary": "Upload or create a file",
+        "description": "Creates a new file at the given path with the supplied contents.",
+        "tags": ["files"],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/FileCreate" } } }
+        },
+        "responses": {
+          "201": { "description": "Created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/File" } } } }
+        }
+      }
+    },
+    "/files/{fileId}": {
+      "get": {
+        "operationId": "getFile",
+        "summary": "Get file metadata",
+        "tags": ["files"],
+        "parameters": [
+          { "name": "fileId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "File metadata", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/File" } } } },
+          "404": { "description": "Not found" }
+        }
+      },
+      "delete": {
+        "operationId": "deleteFile",
+        "summary": "Delete a file permanently",
+        "description": "Permanently removes a file from the NAS. This operation is irreversible.",
+        "tags": ["files"],
+        "parameters": [
+          { "name": "fileId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "204": { "description": "Deleted" },
+          "404": { "description": "Not found" }
+        }
+      }
+    },
+    "/shares": {
+      "get": {
+        "operationId": "listShares",
+        "summary": "List network shares",
+        "description": "Lists all configured SMB/NFS network shares on the NAS.",
+        "tags": ["shares"],
+        "responses": {
+          "200": { "description": "Share list", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ShareList" } } } }
+        }
+      }
+    },
+    "/shares/{shareId}/access": {
+      "put": {
+        "operationId": "resetShareAccess",
+        "summary": "Reset access tokens for a share",
+        "description": "Revokes and regenerates access credentials for a network share. Existing clients will be disconnected.",
+        "tags": ["shares"],
+        "parameters": [
+          { "name": "shareId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Access reset", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Share" } } } }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "File": {
+        "type": "object",
+        "required": ["id", "name", "path", "size"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "path": { "type": "string" },
+          "size": { "type": "integer" },
+          "modified": { "type": "string", "format": "date-time" },
+          "owner": { "type": "string" }
+        }
+      },
+      "FileList": {
+        "type": "object",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/File" } },
+          "total": { "type": "integer" }
+        }
+      },
+      "FileCreate": {
+        "type": "object",
+        "required": ["path", "contents"],
+        "properties": {
+          "path": { "type": "string", "description": "Destination path including filename" },
+          "contents": { "type": "string", "description": "File contents (UTF-8 text)" },
+          "overwrite": { "type": "boolean", "default": false }
+        }
+      },
+      "Share": {
+        "type": "object",
+        "required": ["id", "name", "protocol"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "protocol": { "type": "string", "enum": ["smb", "nfs", "afp"] },
+          "access_token": { "type": "string", "description": "Current access token (sensitive)" }
+        }
+      },
+      "ShareList": {
+        "type": "object",
+        "required": ["items"],
+        "properties": { "items": { "type": "array", "items": { "$ref": "#/components/schemas/Share" } } }
+      }
+    }
+  }
+}

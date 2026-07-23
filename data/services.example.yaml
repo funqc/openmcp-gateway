@@ -1,0 +1,26 @@
+# =============================================================================
+# OpenMCP Gateway —— 后端服务注册配置
+# =============================================================================
+# 复制本文件为 services.yaml，按你的 NAS 服务填写。
+# 启动时网关会逐个拉取 source 指向的 OpenAPI 文档、校验、解引用、建索引。
+#
+# 认证凭据【不要】写在这里——用 .env 的 AUTH_<ID>_SCHEME / AUTH_<ID>_VALUE。
+# =============================================================================
+
+services:
+  # ---- 示例 1：文件服务（OpenAPI 暴露在 HTTP URL）----
+  - id: files
+    source: http://nas-1.local:5000/openapi.json
+    # 可选：覆盖 spec 里的 baseUrl（spec 缺 server 字段、或想改写时用）
+    # baseUrl: http://nas-1.local:5000
+    # 可选：临时禁用某服务（缺省为 true）
+    # enabled: false
+
+  # ---- 示例 2：照片服务 ----
+  - id: photos
+    source: https://nas-2.local:8443/api/openapi.json
+
+  # ---- 示例 3：下载服务（spec 是本地文件）----
+  - id: downloads
+    source: ./data/services/downloads-openapi.json
+    baseUrl: http://nas-3.local:8080

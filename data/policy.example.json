@@ -1,0 +1,22 @@
+{
+  "services": {
+    "files": {
+      "enabled": true,
+      "deny": []
+    }
+  },
+  "redactFields": [
+    "password",
+    "token",
+    "secret",
+    "apikey",
+    "authorization",
+    "access_token",
+    "refresh_token",
+    "cookie"
+  ],
+  "maskingRules": [
+    { "path": "user.password", "replacement": "[REDACTED]" }
+  ],
+  "riskOverrides": {}
+}

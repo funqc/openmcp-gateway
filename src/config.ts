@@ -1,0 +1,136 @@
+/**
+ * 集中化的类型化配置。从环境变量（dotenv）加载一次，以冻结单例暴露。
+ *
+ * 后端服务列表从独立的 YAML 配置文件加载（SERVICES_CONFIG 指向），
+ * 见 loadServiceDescriptors()。认证凭据仍走环境变量（AUTH_<ID>_*），
+ * 永不写进 yaml、永不返回给调用方。
+ */
+import "dotenv/config";
+import { readFileSync, existsSync } from "node:fs";
+import { parseYaml } from "@redocly/openapi-core";
+
+export type SearchProvider = "bm25" | "embedding";
+
+export interface ServiceAuthConfig {
+  scheme: "bearer" | "basic" | "apikey" | "none";
+  value?: string; // token / "user:pass" / api-key 值
+  headerName?: string; // apikey 时用哪个 header（默认 X-API-Key）
+}
+
+/** services.yaml 里每个服务的声明。 */
+export interface ServiceDescriptor {
+  /** 服务 id（slug），全局唯一，如 "files"。 */
+  id: string;
+  /** OpenAPI 文档来源：HTTP(S) URL 或本地文件路径。 */
+  source: string;
+  /** 可选：覆盖 spec 里声明的 baseUrl（spec 缺 server 或想改写时用）。 */
+  baseUrl?: string;
+  /** 可选：该服务默认是否启用（缺省 true）。 */
+  enabled?: boolean;
+}
+
+export interface Config {
+  port: number;
+  host: string;
+  dbPath: string;
+  searchProvider: SearchProvider;
+  embeddingModel: string;
+  policyPath: string;
+  redactFields: string[];
+  /** services.yaml 配置文件路径。 */
+  servicesConfig: string;
+  /** 认证凭据，key 为大写服务 id。 */
+  auth: Record<string, ServiceAuthConfig>;
+  /**
+   * 网关 /mcp 端点的访问鉴权 key（静态 API Key）。
+   * 未配置（空）时不鉴权——仅适合本机 127.0.0.1 部署。
+   * 公网/内网暴露时【必须】配置。
+   */
+  gatewayApiKey: string;
+}
+
+function parseList(raw: string | undefined): string[] {
+  if (!raw) return [];
+  return raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function loadAuth(): Record<string, ServiceAuthConfig> {
+  const out: Record<string, ServiceAuthConfig> = {};
+  for (const key of Object.keys(process.env)) {
+    const m = key.match(/^AUTH_(.+)_SCHEME$/);
+    if (!m) continue;
+    const serviceId = m[1];
+    const scheme = (process.env[key] || "none").toLowerCase() as ServiceAuthConfig["scheme"];
+    const value = process.env[`AUTH_${serviceId}_VALUE`];
+    const headerName = process.env[`AUTH_${serviceId}_HEADER`];
+    out[serviceId.toLowerCase()] = {
+      scheme,
+      value,
+      headerName: headerName || (scheme === "apikey" ? "X-API-Key" : undefined),
+    };
+  }
+  return out;
+}
+
+function build(): Config {
+  return {
+    port: Number(process.env.PORT ?? 3001),
+    host: process.env.HOST ?? "127.0.0.1",
+    dbPath: process.env.DB_PATH ?? "./data/registry.db",
+    searchProvider: (process.env.SEARCH_PROVIDER ?? "bm25") as SearchProvider,
+    embeddingModel: process.env.EMBEDDING_MODEL ?? "Xenova/all-MiniLM-L6-v2",
+    policyPath: process.env.POLICY_PATH ?? "./data/policy.json",
+    redactFields: parseList(process.env.REDACT_FIELDS).map((f) => f.toLowerCase()),
+    servicesConfig: process.env.SERVICES_CONFIG ?? "./data/services.yaml",
+    auth: loadAuth(),
+    gatewayApiKey: process.env.GATEWAY_API_KEY ?? "",
+  };
+}
+
+export const config: Config = Object.freeze(build());
+
+export function getAuthForService(serviceId: string): ServiceAuthConfig {
+  // loadAuth 以小写 serviceId 为 key 存储，这里统一用小写查找。
+  return config.auth[serviceId.toLowerCase()] ?? { scheme: "none" as const };
+}
+
+/**
+ * 从 services.yaml 加载服务声明列表。
+ *
+ * 文件不存在时返回 { descriptors: [], exists: false }（网关仍可启动，
+ * 只是没有自动注册的服务，也不会清理 DB；可后续通过 registry.register() 编程式注册）。
+ *
+ * enabled:false 的服务会被过滤掉（不出现在 descriptors 里），
+ * 调用方可用 exists 判断是否应做"以配置为准"的清理。
+ */
+export function loadServiceDescriptors(): { descriptors: ServiceDescriptor[]; exists: boolean } {
+  const path = config.servicesConfig;
+  if (!existsSync(path)) return { descriptors: [], exists: false };
+
+  let parsed: unknown;
+  try {
+    parsed = parseYaml(readFileSync(path, "utf8"));
+  } catch (err) {
+    console.warn(`[config] 解析 ${path} 失败:`, (err as Error).message);
+    return { descriptors: [], exists: true };
+  }
+
+  const doc = parsed as { services?: ServiceDescriptor[] } | null;
+  const list = doc?.services ?? [];
+  if (!Array.isArray(list)) {
+    console.warn(`[config] ${path} 的 "services" 不是数组，已忽略`);
+    return { descriptors: [], exists: true };
+  }
+
+  const descriptors = list.filter((s) => {
+    if (!s?.id || !s?.source) {
+      console.warn(`[config] 跳过无效服务声明（缺 id 或 source）: ${JSON.stringify(s)}`);
+      return false;
+    }
+    return s.enabled !== false;
+  });
+  return { descriptors, exists: true };
+}

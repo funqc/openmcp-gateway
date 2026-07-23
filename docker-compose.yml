@@ -1,0 +1,47 @@
+# =============================================================================
+# OpenMCP Gateway —— Docker Compose 部署
+# =============================================================================
+# 用法：
+#   1. 准备配置：cp data/services.example.yaml data/services.yaml （编辑成你的服务）
+#   2. 准备环境变量：cp .env.example .env （填 GATEWAY_API_KEY、AUTH_* 等）
+#   3. 启动：docker compose up -d
+#   4. 查看日志：docker compose logs -f
+#   5. 停止：docker compose down
+#
+# HTTPS：本服务只暴露 HTTP，由外部反向代理（nginx/Caddy/Cloudflare Tunnel）
+#       终结 HTTPS。务必配 GATEWAY_API_KEY，否则 /mcp 裸奔。
+# =============================================================================
+
+services:
+  openmcp-gateway:
+    build: .
+    image: openmcp-gateway:latest
+    container_name: openmcp-gateway
+    restart: unless-stopped
+
+    ports:
+      - "3001:3001"
+      # 如需改宿主机端口（避免冲突），用 "宿主机端口:容器端口"：
+      # - "8080:3001"
+
+    # 环境变量从 .env 注入（GATEWAY_API_KEY、AUTH_*、SERVICES_CONFIG 等）
+    env_file:
+      - .env
+
+    environment:
+      # 容器内固定配置（数据目录、监听地址）
+      - DB_PATH=/app/data/registry.db
+      - SERVICES_CONFIG=/app/data/services.yaml
+      - POLICY_PATH=/app/data/policy.json
+      - HOST=0.0.0.0
+
+    volumes:
+      # 持久化数据（registry.db + 配置）。把宿主机 ./data 挂进容器。
+      - ./data:/app/data
+
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3

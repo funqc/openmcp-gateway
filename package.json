@@ -1,0 +1,36 @@
+{
+  "name": "openmcp-gateway",
+  "version": "0.1.0",
+  "description": "OpenAPI Registry MCP Gateway — two tools (search_api, execute_api) over a unified API registry",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "build": "tsc",
+    "serve": "node dist/index.js",
+    "test:e2e": "tsx scripts/test-e2e.ts",
+    "bootstrap": "tsx scripts/bootstrap.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.24.3",
+    "@redocly/openapi-core": "^2.40.0",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
+    "better-sqlite3": "^13.0.1",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "undici": "^8.8.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/express": "^5.0.6",
+    "@types/node": "^22.10.0",
+    "tsx": "^4.23.1",
+    "typescript": "^5.7.0"
+  }
+}

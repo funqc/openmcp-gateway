@@ -1,0 +1,24 @@
+# 依赖与构建产物（镜像内重新安装/编译）
+node_modules
+dist
+
+# 数据（由卷挂载，不打进镜像）
+data/registry.db
+data/registry.db-*
+data/*.log
+
+# 本地环境与编辑器
+.env
+.env.*
+!.env.example
+.git
+.gitignore
+.zcode
+*.md
+!README.md
+docs
+
+# 临时与系统文件
+*.log
+.DS_Store
+Thumbs.db
