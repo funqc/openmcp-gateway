@@ -4,13 +4,23 @@
  * 覆盖脱敏、风险闸、审计等路径。
  *
  * 独立可跑：npm run test:e2e
+ *
+ * 重要：测试必须用隔离 DB，绝不污染生产库 data/registry.db（否则每次启动
+ * discover() 都会因 demo 'files' 服务不在 services.yaml 而报「已移除」）。
+ * 因为 src 模块在 import 时就读取 config（含 DB_PATH），必须在 import 任何
+ * src 之前设好 DB_PATH——所以用动态 import 延迟到 env 设好之后。
  */
-import { getRegistry, getSearch } from "../src/services.js";
-import * as store from "../src/store/operation-store.js";
-import { execute } from "../src/execute/executor.js";
-import { closeDb } from "../src/store/db.js";
-import { recentAudit } from "../src/governance/audit.js";
+process.env.DB_PATH = process.env.DB_PATH ?? "./data/test-registry.db";
+
+// 副作用模块（不依赖 config）可静态 import。
 import { DEMO_SPEC, startMockUpstream } from "./lib/test-fixture.js";
+
+// src 模块延迟到 DB_PATH 确定后再 import。
+const { getRegistry, getSearch } = await import("../src/services.js");
+const store = await import("../src/store/operation-store.js");
+const { execute } = await import("../src/execute/executor.js");
+const { closeDb } = await import("../src/store/db.js");
+const { recentAudit } = await import("../src/governance/audit.js");
 
 let failures = 0;
 function assert(cond: boolean, msg: string): void {

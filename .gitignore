@@ -6,6 +6,11 @@ data/registry.db
 data/registry.db-journal
 data/registry.db-wal
 data/registry.db-shm
+# 脚本（bootstrap / test:e2e）用的隔离 DB，不提交
+data/*-registry.db
+data/*-registry.db-journal
+data/*-registry.db-wal
+data/*-registry.db-shm
 data/services.yaml
 data/policy.json
 
