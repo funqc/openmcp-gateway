@@ -407,7 +407,22 @@ async function introspect(endpoint: string, authHeaders: Record<string, string>)
     throw new Error(`GraphQL introspection failed (cannot reach ${endpoint}): ${(err as Error).message}`);
   }
   if (!res.ok) {
-    throw new Error(`GraphQL introspection failed: ${endpoint} returned HTTP ${res.status}`);
+    // Surface the upstream body so the cause is visible (e.g. Unraid returns
+    // INTROSPECTION_DISABLED with a 400 — without the body the user only sees
+    // a bare status code and has to guess).
+    let detail = "";
+    try {
+      detail = (await res.text()).trim().slice(0, 300);
+    } catch {
+      /* ignore */
+    }
+    const hint =
+      /INTROSPECTION_DISABLED/i.test(detail)
+        ? " Introspection is disabled on this server. For Unraid, enable developer mode: run `unraid-api developer --sandbox true` on the server (or Settings → Management Access → Developer Options), then restart the gateway."
+        : "";
+    throw new Error(
+      `GraphQL introspection failed: ${endpoint} returned HTTP ${res.status}.${detail ? ` Body: ${detail}` : ""}${hint}`,
+    );
   }
   const payload = (await res.json()) as { data?: { __schema?: IntroSchema }; errors?: { message: string }[] };
   if (payload.errors?.length) {
