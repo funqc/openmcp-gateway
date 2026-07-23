@@ -25,6 +25,19 @@ export function buildRequest(
   body: unknown,
   authHeaders: Record<string, string>,
 ): BuiltRequest {
+  // GraphQL operations: one POST to /graphql with { query, variables }.
+  // params (validated/coerced by Ajv against the auto-generated schema) become
+  // the GraphQL variables; the document text is stored on the operation.
+  if (op.graphqlQuery) {
+    const url = `${baseUrl.replace(/\/$/, "")}/graphql`;
+    return {
+      url,
+      method: "POST",
+      headers: { ...authHeaders, "Content-Type": "application/json" },
+      body: JSON.stringify({ query: op.graphqlQuery, variables: params }),
+    };
+  }
+
   const pathParams: Record<string, string> = {};
   const queryParams: Record<string, string> = {};
   const headers: Record<string, string> = {};

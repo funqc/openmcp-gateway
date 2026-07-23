@@ -21,12 +21,19 @@ export interface ServiceAuthConfig {
 export interface ServiceDescriptor {
   /** 服务 id（slug），全局唯一，如 "files"。 */
   id: string;
-  /** OpenAPI 文档来源：HTTP(S) URL 或本地文件路径。 */
+  /**
+   * 服务文档来源。
+   *   - openapi（默认）：HTTP(S) URL 或本地文件路径，指向 OpenAPI 文档。
+   *   - graphql：HTTP(S) URL，指向 GraphQL 端点（通常形如 https://host/graphql），
+   *     网关会对其做 introspection 来发现 operation。
+   */
   source: string;
   /** 可选：覆盖 spec 里声明的 baseUrl（spec 缺 server 或想改写时用）。 */
   baseUrl?: string;
   /** 可选：该服务默认是否启用（缺省 true）。 */
   enabled?: boolean;
+  /** 可选：服务类型。"openapi"（默认）或 "graphql"。 */
+  type?: "openapi" | "graphql";
 }
 
 export interface Config {

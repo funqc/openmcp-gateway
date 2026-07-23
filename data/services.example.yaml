@@ -24,3 +24,16 @@ services:
   - id: downloads
     source: ./data/services/downloads-openapi.json
     baseUrl: http://nas-3.local:8080
+
+  # ---- 示例 4：Unraid（GraphQL 服务）----
+  # Unraid 只暴露 GraphQL 端点（没有 OpenAPI）。设 type: graphql 后，
+  # 网关会对 source 指向的端点做 introspection，把每个 Query/Mutation
+  # 根字段自动建成一个可检索的 operation（与 OpenAPI operation 同等对待）。
+  # 凭据走 .env 的 AUTH_UNRAID_*（Unraid 用 x-api-key header）：
+  #   AUTH_UNRAID_SCHEME=apikey
+  #   AUTH_UNRAID_VALUE=<在 Unraid WebGUI Settings→Management Access→API Keys 生成>
+  #   AUTH_UNRAID_HEADER=x-api-key
+  - id: unraid
+    type: graphql
+    source: https://tower.local/graphql   # GraphQL 端点（introspection 从此发起）
+    # baseUrl: https://tower.local         # 可选：默认从 source 去掉 /graphql 推断

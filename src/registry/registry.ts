@@ -9,22 +9,28 @@
  * service list.
  */
 import { createHash } from "node:crypto";
-import { config, getAuthForService, loadServiceDescriptors } from "../config.js";
+import { getAuthForService, loadServiceDescriptors } from "../config.js";
 import type { OperationRecord, ServiceRecord } from "../types.js";
 import * as store from "../store/operation-store.js";
 import { loadSpec, parseAndValidate, resolveBaseUrl } from "./parser.js";
 import { extractOperations } from "./operation-extractor.js";
+import { ingestGraphql, authHeadersForService } from "./graphql-source.js";
 import type { OperationSearch } from "../search/types.js";
 import { logAudit } from "../governance/audit.js";
 
 export interface RegisterOptions {
   serviceId: string;
-  /** file path, URL, or inline object */
+  /** file path, URL, or inline object (OpenAPI) — or GraphQL endpoint URL. */
   source: string | object;
   /** Override the base URL (otherwise first OpenAPI server entry). */
   baseUrl?: string;
   /** Per-operationId risk overrides (also influenced by policy). */
   riskOverrides?: Record<string, "safe" | "elevated" | "dangerous">;
+  /**
+   * Source type. "openapi" (default) ingests an OpenAPI doc;
+   * "graphql" introspects a GraphQL endpoint instead.
+   */
+  type?: "openapi" | "graphql";
 }
 
 export interface RegisterResult {
@@ -38,27 +44,25 @@ function sha256(s: string): string {
   return createHash("sha256").update(s, "utf8").digest("hex");
 }
 
-export class Registry {
-  constructor(private readonly search: OperationSearch) {}
+/** Common shape both ingestion paths produce before storage + indexing. */
+interface Ingested {
+  hash: string;
+  operations: OperationRecord[];
+  service: ServiceRecord;
+}
 
-  async register(opts: RegisterOptions): Promise<RegisterResult> {
-    const loaded = await loadSpec(opts.source);
-    const hash = sha256(loaded.raw);
-
-    // 去重：spec 哈希未变、且 baseUrl 也没变（或调用方未指定 baseUrl）时跳过。
-    // 同一份 spec 换了部署地址（baseUrl 不同）时仍需刷新。
-    const existing = store.getService(opts.serviceId);
-    const baseUrlUnchanged = !opts.baseUrl || existing?.baseUrl === opts.baseUrl;
-    if (existing && existing.specHash === hash && baseUrlUnchanged) {
-      return { serviceId: opts.serviceId, inserted: 0, skipped: true, hash };
-    }
-
-    const parsed = await parseAndValidate(loaded.raw, loaded.absoluteRef);
-    const extraction = extractOperations(opts.serviceId, parsed.doc, opts.riskOverrides);
-    const auth = getAuthForService(opts.serviceId);
-    const baseUrl = opts.baseUrl ?? resolveBaseUrl(parsed.servers);
-
-    const service: ServiceRecord = {
+/** OpenAPI path: load → validate/dereference → extract operations. */
+async function ingestOpenapi(opts: RegisterOptions): Promise<Ingested> {
+  const loaded = await loadSpec(opts.source);
+  const hash = sha256(loaded.raw);
+  const parsed = await parseAndValidate(loaded.raw, loaded.absoluteRef);
+  const extraction = extractOperations(opts.serviceId, parsed.doc, opts.riskOverrides);
+  const auth = getAuthForService(opts.serviceId);
+  const baseUrl = opts.baseUrl ?? resolveBaseUrl(parsed.servers);
+  return {
+    hash,
+    operations: extraction.operations,
+    service: {
       id: opts.serviceId,
       name: parsed.infoTitle,
       baseUrl,
@@ -66,10 +70,69 @@ export class Registry {
       specHash: hash,
       authScheme: auth.scheme,
       registeredAt: Date.now(),
-    };
+    },
+  };
+}
 
-    store.replaceServiceOperations(service, extraction.operations);
-    await this.search.index(extraction.operations.map((o) => ({
+/** GraphQL path: introspect endpoint → build operations from root fields. */
+async function ingestGraphQL(opts: RegisterOptions): Promise<Ingested> {
+  if (typeof opts.source !== "string" || !/^https?:\/\//i.test(opts.source)) {
+    throw new Error(
+      `GraphQL service "${opts.serviceId}" requires source to be an http(s) endpoint URL (got: ${String(opts.source)})`,
+    );
+  }
+  const auth = getAuthForService(opts.serviceId);
+  const authHeaders = authHeadersForService(auth);
+  const result = await ingestGraphql({
+    serviceId: opts.serviceId,
+    endpoint: opts.source,
+    authHeaders,
+    riskOverrides: opts.riskOverrides,
+  });
+  // GraphQL 的 baseUrl：显式优先，否则从 endpoint 推断（去掉 /graphql 后缀）。
+  const baseUrl = opts.baseUrl ?? graphqlEndpointToBase(opts.source);
+  return {
+    hash: result.hash,
+    operations: result.operations,
+    service: {
+      id: opts.serviceId,
+      name: result.infoTitle,
+      baseUrl,
+      specVersion: "graphql",
+      specHash: result.hash,
+      authScheme: auth.scheme,
+      registeredAt: Date.now(),
+    },
+  };
+}
+
+/** Strip a trailing /graphql (or similar) from an endpoint URL to get the base. */
+function graphqlEndpointToBase(endpoint: string): string {
+  return endpoint.replace(/\/graphql\/?$/i, "").replace(/\/$/, "");
+}
+
+export class Registry {
+  constructor(private readonly search: OperationSearch) {}
+
+  async register(opts: RegisterOptions): Promise<RegisterResult> {
+    // 分流：GraphQL 走 introspection，否则走 OpenAPI 摄取。两路最终都产出
+    // { hash, operations, service }，后半段（存储 + 建索引）完全共用。
+    const ingested =
+      opts.type === "graphql"
+        ? await ingestGraphQL(opts)
+        : await ingestOpenapi(opts);
+
+    const { hash, operations, service } = ingested;
+
+    // 去重：哈希未变、且 baseUrl 也没变（或调用方未指定 baseUrl）时跳过。
+    const existing = store.getService(opts.serviceId);
+    const baseUrlUnchanged = !service.baseUrl || existing?.baseUrl === service.baseUrl;
+    if (existing && existing.specHash === hash && baseUrlUnchanged) {
+      return { serviceId: opts.serviceId, inserted: 0, skipped: true, hash };
+    }
+
+    store.replaceServiceOperations(service, operations);
+    await this.search.index(operations.map((o) => ({
       operationId: o.id,
       serviceId: o.serviceId,
       method: o.method,
@@ -79,7 +142,7 @@ export class Registry {
       tags: o.tags,
     })));
 
-    return { serviceId: opts.serviceId, inserted: extraction.operations.length, skipped: false, hash };
+    return { serviceId: opts.serviceId, inserted: operations.length, skipped: false, hash };
   }
 
   async deregister(serviceId: string): Promise<void> {
@@ -110,9 +173,9 @@ export class Registry {
     const declaredIds = new Set(descriptors.map((d) => d.id));
     const results: RegisterResult[] = [];
 
-    for (const { id, source, baseUrl } of descriptors) {
+    for (const { id, source, baseUrl, type } of descriptors) {
       try {
-        const r = await this.register({ serviceId: id, source, baseUrl });
+        const r = await this.register({ serviceId: id, source, baseUrl, type });
         results.push(r);
         logAudit({
           ts: Date.now(),

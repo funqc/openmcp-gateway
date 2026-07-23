@@ -34,7 +34,8 @@ CREATE TABLE IF NOT EXISTS operations (
   body_required INTEGER NOT NULL DEFAULT 0,
   response_hint TEXT,
   risk_level    TEXT NOT NULL,
-  example       TEXT NOT NULL
+  example       TEXT NOT NULL,
+  graphql_query TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_operations_service ON operations(service_id);
 
@@ -72,6 +73,10 @@ export function getDb(): Database.Database {
   const cols = conn.prepare("PRAGMA table_info(operations)").all() as { name: string }[];
   if (!cols.some((c) => c.name === "body_required")) {
     conn.exec("ALTER TABLE operations ADD COLUMN body_required INTEGER NOT NULL DEFAULT 0");
+  }
+  // graphql_query: stores the auto-generated document for GraphQL-sourced ops.
+  if (!cols.some((c) => c.name === "graphql_query")) {
+    conn.exec("ALTER TABLE operations ADD COLUMN graphql_query TEXT");
   }
   _db = conn;
   return conn;

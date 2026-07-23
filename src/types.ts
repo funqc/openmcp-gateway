@@ -35,6 +35,13 @@ export interface OperationRecord {
   riskLevel: RiskLevel;
   /** A ready-to-use curl/JSON example for the agent. */
   example: string;
+  /**
+   * GraphQL document text, when this operation came from a GraphQL service
+   * (via introspection). null/undefined for REST/OpenAPI operations.
+   * When set, the executor sends `{ query, variables }` to `/graphql` instead
+   * of building a REST request.
+   */
+  graphqlQuery?: string | null;
 }
 
 /** The minimal subset the search backend needs to index. */

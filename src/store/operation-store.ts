@@ -29,6 +29,7 @@ interface OperationRow {
   response_hint: string | null;
   risk_level: string;
   example: string;
+  graphql_query: string | null;
 }
 
 function rowToService(r: ServiceRow): ServiceRecord {
@@ -58,6 +59,7 @@ function rowToOperation(r: OperationRow): OperationRecord {
     responseHint: r.response_hint ?? undefined,
     riskLevel: r.risk_level as OperationRecord["riskLevel"],
     example: r.example,
+    graphqlQuery: r.graphql_query ?? null,
   };
 }
 
@@ -125,14 +127,15 @@ export function clearOperationsFor(serviceId: string): void {
 export function insertOperation(op: OperationRecord): void {
   db.prepare(
     `INSERT INTO operations
-       (id,service_id,method,path,summary,description,tags,params_schema,body_schema,body_required,response_hint,risk_level,example)
+       (id,service_id,method,path,summary,description,tags,params_schema,body_schema,body_required,response_hint,risk_level,example,graphql_query)
      VALUES
-       (@id,@service_id,@method,@path,@summary,@description,@tags,@params_schema,@body_schema,@body_required,@response_hint,@risk_level,@example)
+       (@id,@service_id,@method,@path,@summary,@description,@tags,@params_schema,@body_schema,@body_required,@response_hint,@risk_level,@example,@graphql_query)
      ON CONFLICT(id) DO UPDATE SET
        service_id=excluded.service_id, method=excluded.method, path=excluded.path,
        summary=excluded.summary, description=excluded.description, tags=excluded.tags,
        params_schema=excluded.params_schema, body_schema=excluded.body_schema, body_required=excluded.body_required,
-       response_hint=excluded.response_hint, risk_level=excluded.risk_level, example=excluded.example`,
+       response_hint=excluded.response_hint, risk_level=excluded.risk_level, example=excluded.example,
+       graphql_query=excluded.graphql_query`,
   ).run({
     id: op.id,
     service_id: op.serviceId,
@@ -147,6 +150,7 @@ export function insertOperation(op: OperationRecord): void {
     response_hint: op.responseHint ?? null,
     risk_level: op.riskLevel,
     example: op.example,
+    graphql_query: op.graphqlQuery ?? null,
   });
 }
 
