@@ -19,6 +19,7 @@
 - **响应脱敏** —— 敏感字段（`password`、`token`、`access_token` 等）在工具输出与审计日志中均被脱敏。
 - **调用审计** —— 每次 `execute_api` 调用都追加写入审计日志（参数已脱敏）。
 - **统一治理** —— 通过策略文件实现按服务的启用/禁用、允许/拒绝清单、脱敏规则、按 Operation 的风险等级覆盖。
+- **脚本化直调入口（REST `/exec`）** —— 除 MCP 外，同时暴露 `POST /exec/<operation_id>`，供 Python/Shell 等脚本绕过 LLM 直接调用，适合批量、可固化、零 token 的工作流；治理与 `execute_api` 完全一致。
 
 ## 快速开始
 
@@ -119,6 +120,71 @@ curl -s -X POST http://127.0.0.1:3001/mcp \
   -H "mcp-session-id: $SID" \
   -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"execute_api","arguments":{"operation_id":"listFiles","params":{"limit":5}}}}'
 ```
+
+## 脚本化调用（REST `/exec`）
+
+对于**批量、可固化、零 token**的工作流，不必让 Agent 一轮轮经 LLM 调 `execute_api`——网关同时暴露一个 REST 入口，让任意脚本直接打到同一个 `execute()`：
+
+```
+POST /exec/<operation_id>
+Header: X-API-Key: <GATEWAY_API_KEY>   （与 /mcp 共用，见「访问鉴权」）
+Body:   { "params": { ... }, "confirm": true|false }
+```
+
+底层就是 `execute_api` 用的那个 `execute()`，所以鉴权、策略、参数校验、响应脱敏、审计、风险确认**完全一致**——审计里 `caller` 标为 `http:exec` 便于区分。REST 是无状态的（无需 MCP 会话），更适合脚本批处理。
+
+### 何时用 `/exec` 而非 MCP
+
+- **批量/重复任务**（对成百上千条数据执行同一组操作）。
+- **想把 workflow 固化成代码**（版本控制、测试、复用）。
+- **跨语言/跨机器**（Python、Shell、任何能发 HTTP 的程序）。
+
+### 示例
+
+```bash
+# Shell：单条调用
+curl -X POST http://127.0.0.1:3001/exec/listFiles \
+     -H "X-API-Key: $GATEWAY_API_KEY" \
+     -d '{"params":{"limit":10}}'
+
+# 危险操作必须显式授权，否则返回 412 不执行
+curl -X POST http://127.0.0.1:3001/exec/deleteFile \
+     -H "X-API-Key: $GATEWAY_API_KEY" \
+     -d '{"params":{"fileId":"f-1"}}'                    # → 412 Precondition Failed
+curl -X POST http://127.0.0.1:3001/exec/deleteFile \
+     -H "X-API-Key: $GATEWAY_API_KEY" \
+     -d '{"params":{"fileId":"f-1"},"confirm":true}'     # → 200 OK
+```
+
+```python
+# Python：批量 workflow（成百上千条，零 LLM token）
+import requests
+
+GW, KEY = "http://nas:3001", "xxx"
+hdr = {"X-API-Key": KEY}
+
+for item in items:
+    r1 = requests.post(f"{GW}/exec/opA", json={"params": {"id": item}}, headers=hdr)
+    if r1.status_code != 200:
+        continue
+    a_id = r1.json()["data"]["id"]
+    requests.post(f"{GW}/exec/opB", json={"params": {"parent": a_id}}, headers=hdr)
+```
+
+### 响应与状态码
+
+响应体始终是完整 `ExecuteOutput` JSON（即便 4xx/5xx 也带 `message`/`details`），脚本可凭 HTTP 状态码判断成败：
+
+| `status` 字段 | HTTP | 含义 |
+|---|---|---|
+| `success` | 200 | 成功 |
+| `confirmation_required` | 412 | 危险操作未 `confirm`，需带 `"confirm":true` 重试 |
+| `validation_error` | 400 | 参数校验失败 |
+| `denied` | 403 | 策略拒绝 / 上游 401-403 |
+| `not_found` | 404 | `operation_id` 未知 |
+| `upstream_error` | 502 | 上游 5xx / 网络错误 |
+
+> **提示**：用 `search_api`（或 `npx tsx scripts/inspect.ts search "..."`）查出目标 `operation_id`，再用 `/exec` 批量调用。
 
 ## 项目结构
 

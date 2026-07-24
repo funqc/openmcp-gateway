@@ -16,6 +16,7 @@ import {
 } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { createMcpServer } from "./server.js";
+import { mountExecRoute } from "./exec-route.js";
 import { config } from "./config.js";
 
 interface SessionState {
@@ -24,11 +25,11 @@ interface SessionState {
 }
 
 /**
- * /mcp 端点的静态 API Key 鉴权。
+ * 静态 API Key 鉴权中间件，协议无关（同时保护 /mcp 与 /exec）。
  * 客户端可通过 Authorization: Bearer <key> 或 X-API-Key: <key> 提供。
  * 未配置 GATEWAY_API_KEY 时不鉴权（仅适合本机部署）。
  */
-function mcpAuth(req: Request, res: Response, next: NextFunction): void {
+export function mcpAuth(req: Request, res: Response, next: NextFunction): void {
   if (!config.gatewayApiKey) {
     next();
     return;
@@ -130,6 +131,9 @@ export function createApp(): express.Express {
     const { transport } = sessions.get(sessionId)!;
     await transport.handleRequest(req, res);
   });
+
+  // REST 执行入口（脚本化调用，绕过 LLM）。与 /mcp 共享同一鉴权。
+  mountExecRoute(app, mcpAuth);
 
   // Health check.
   app.get("/health", (_req, res) => res.json({ ok: true }));

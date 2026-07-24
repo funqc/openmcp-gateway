@@ -23,6 +23,7 @@ async function main(): Promise<void> {
   const app = createApp();
   const httpServer = app.listen(config.port, config.host, () => {
     console.log(`[openmcp-gateway] MCP endpoint:  http://${config.host}:${config.port}/mcp`);
+    console.log(`[openmcp-gateway] exec (REST):   http://${config.host}:${config.port}/exec/<operation_id>`);
     console.log(`[openmcp-gateway] health:        http://${config.host}:${config.port}/health`);
     console.log(`[openmcp-gateway] search backend: ${config.searchProvider}`);
     if (config.gatewayApiKey) {
