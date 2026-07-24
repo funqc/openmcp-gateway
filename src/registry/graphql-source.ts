@@ -304,9 +304,55 @@ function typeRefToString(ref: IntroTypeRef): string {
 const MAX_SELECTION_DEPTH = 2;
 
 /**
+ * Fields that are almost always populated and safe to request: identity,
+ * naming, and status. Requesting only these avoids two failure modes of
+ * auto-selecting ALL scalar fields:
+ *   1. upstream declares a field non-null but returns null → whole query fails
+ *      (observed on Unraid's Disk.bytesPerSector)
+ *   2. huge payloads full of fields the agent rarely needs first
+ *
+ * The agent can always run a narrower manual query if it needs more, but for
+ * discovery/monitoring these give enough to act on.
+ */
+const SAFE_SELECTION_FIELDS = new Set([
+  "id",
+  "name",
+  "state",
+  "status",
+  "type",
+  "kind",
+  "path",
+  "size",
+  "description",
+  "protocol",
+  "vendor",
+  "brand",
+  "model",
+  "serial",
+  "temp",
+  "temperature",
+  "used",
+  "free",
+  "total",
+  "online",
+  "running",
+  "started",
+  "os",
+  "ip",
+  "mac",
+  "version",
+  "createdAt",
+  "updatedAt",
+  "time",
+  "message",
+  "code",
+]);
+
+/**
  * Produce an indented selection set for the field's return type. Scalars/Enums
- * return "" (empty — caller treats as scalar leaf). Objects list their scalar
- * fields plus, at depth < MAX, one level into object subfields.
+ * return "" (empty — caller treats as scalar leaf). Objects select only the
+ * safe high-signal fields (plus __typename), recursing one level for object
+ * subfields that also have safe fields.
  */
 function selectionSetFor(ref: IntroTypeRef, typeByName: Map<string, IntroType>, depth: number): string {
   const named = unwrap(ref);
@@ -317,20 +363,30 @@ function selectionSetFor(ref: IntroTypeRef, typeByName: Map<string, IntroType>, 
   if (t.kind === "SCALAR" || t.kind === "ENUM") return ""; // leaf
 
   if (t.kind === "OBJECT" || t.kind === "INTERFACE") {
-    const lines: string[] = [];
+    const lines: string[] = ["__typename"];
     const fields = (t.fields ?? []).filter((f) => !f.name.startsWith("__"));
-    // Always include __typename so the agent can tell concrete types apart.
-    lines.push("__typename");
+    const hasWhitelisted = fields.some((f) => SAFE_SELECTION_FIELDS.has(f.name));
     for (const f of fields) {
       const fNamed = unwrap(f.type);
       const isLeaf = !fNamed?.name || SCALAR_MAP[fNamed.name] || typeByName.get(fNamed.name)?.kind === "ENUM";
+      if (hasWhitelisted) {
+        // Conservative mode: only whitelisted fields. Safe but minimal.
+        if (!SAFE_SELECTION_FIELDS.has(f.name)) continue;
+      } else {
+        // No whitelisted field exists on this type (e.g. Vms → domains).
+        // Fall back to ALL nullable scalar fields so the query still returns
+        // something useful. Non-null scalars are skipped: a null return from
+        // the upstream on a non-null field fails the WHOLE query (observed on
+        // Unraid's Disk.bytesPerSector), so we only request nullable ones.
+        if (!isLeaf) continue; // objects handled below
+        if (isNonNull(f.type)) continue;
+      }
       if (isLeaf) {
         lines.push(f.name);
       } else if (depth + 1 < MAX_SELECTION_DEPTH) {
         const sub = selectionSetFor(f.type, typeByName, depth + 1);
-        lines.push(sub ? `${f.name} {\n${indent(sub)}\n}` : f.name);
+        if (sub) lines.push(`${f.name} {\n${indent(sub)}\n}`);
       }
-      // Deeper than MAX_SELECTION_DEPTH: omit (keeps payloads bounded).
     }
     return dedupePreserveOrder(lines).join("\n");
   }

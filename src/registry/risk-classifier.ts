@@ -36,6 +36,21 @@ function normalize(s: string | undefined): string {
   return (s ?? "").toLowerCase();
 }
 
+/**
+ * Match a keyword as a whole word (not a substring), so that e.g. "format"
+ * matches "format the disk" but NOT "information". Uses word boundaries; for
+ * multi-word phrases (e.g. "power off") the boundary is applied at both ends.
+ */
+function matchesKeyword(haystack: string, keyword: string): boolean {
+  // \b doesn't always behave well with non-ASCII; the classifier haystack is
+  // already lowercased ASCII-ish. Escape regex meta in the keyword.
+  const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  // Treat spaces in the keyword literally (multi-word phrases); boundary on
+  // the outer edges only.
+  const re = new RegExp(`(?:^|[^a-z0-9])${escaped}(?:[^a-z0-9]|$)`, "i");
+  return re.test(haystack);
+}
+
 export function classifyRisk(
   method: HttpMethod,
   path: string,
@@ -47,7 +62,7 @@ export function classifyRisk(
 
   if (DESTRUCTIVE_METHODS.includes(method)) return "dangerous";
 
-  const hitsDestructive = DESTRUCTIVE_KEYWORDS.some((k) => haystack.includes(k));
+  const hitsDestructive = DESTRUCTIVE_KEYWORDS.some((k) => matchesKeyword(haystack, k));
   if (hitsDestructive) return "dangerous";
 
   if (WRITE_METHODS.includes(method)) return "elevated";
