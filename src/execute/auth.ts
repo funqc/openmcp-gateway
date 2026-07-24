@@ -35,5 +35,9 @@ export function resolveAuthHeaders(service: ServiceRecord): ResolvedAuth {
     default:
       break;
   }
+  // Merge per-service custom headers (from AUTH_<ID>_HEADERS), e.g. Bangumi
+  // requires a compliant User-Agent. Applied last so they win over any same-named
+  // header above; they do not overlap with Authorization/X-*-Key scheme headers.
+  if (cfg.headers) Object.assign(headers, cfg.headers);
   return { headers };
 }

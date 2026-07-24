@@ -15,6 +15,12 @@ export interface ServiceAuthConfig {
   scheme: "bearer" | "basic" | "apikey" | "none";
   value?: string; // token / "user:pass" / api-key 值
   headerName?: string; // apikey 时用哪个 header（默认 X-API-Key）
+  /**
+   * 额外的 per-service 自定义 header（从 AUTH_<ID>_HEADERS 加载，JSON 对象）。
+   * 典型用途：Bangumi 要求每个请求带合规 User-Agent，否则封禁。
+   * 与认证同类管理（都影响请求 header、per-service 配置）。
+   */
+  headers?: Record<string, string>;
 }
 
 /** services.yaml 里每个服务的声明。 */
@@ -64,6 +70,29 @@ function parseList(raw: string | undefined): string[] {
     .filter(Boolean);
 }
 
+/**
+ * 解析 AUTH_<ID>_HEADERS 环境变量（JSON 对象，如 {"User-Agent":"..."}）。
+ * 解析失败或非对象时 warn 并返回 undefined（不影响启动）。
+ */
+function parseExtraHeaders(raw: string | undefined, serviceId: string): Record<string, string> | undefined {
+  if (!raw) return undefined;
+  try {
+    const parsed = JSON.parse(raw);
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+      console.warn(`[config] AUTH_${serviceId}_HEADERS 不是 JSON 对象，已忽略`);
+      return undefined;
+    }
+    const headers: Record<string, string> = {};
+    for (const [k, v] of Object.entries(parsed)) {
+      if (typeof v === "string") headers[k] = v;
+    }
+    return Object.keys(headers).length ? headers : undefined;
+  } catch (err) {
+    console.warn(`[config] AUTH_${serviceId}_HEADERS 解析失败:`, (err as Error).message);
+    return undefined;
+  }
+}
+
 function loadAuth(): Record<string, ServiceAuthConfig> {
   const out: Record<string, ServiceAuthConfig> = {};
   for (const key of Object.keys(process.env)) {
@@ -73,10 +102,12 @@ function loadAuth(): Record<string, ServiceAuthConfig> {
     const scheme = (process.env[key] || "none").toLowerCase() as ServiceAuthConfig["scheme"];
     const value = process.env[`AUTH_${serviceId}_VALUE`];
     const headerName = process.env[`AUTH_${serviceId}_HEADER`];
+    const headers = parseExtraHeaders(process.env[`AUTH_${serviceId}_HEADERS`], serviceId);
     out[serviceId.toLowerCase()] = {
       scheme,
       value,
       headerName: headerName || (scheme === "apikey" ? "X-API-Key" : undefined),
+      headers,
     };
   }
   return out;

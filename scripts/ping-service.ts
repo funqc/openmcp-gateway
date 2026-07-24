@@ -96,6 +96,8 @@ function authHeaders(id: string): Record<string, string> {
     default:
       break;
   }
+  // Per-service custom headers (AUTH_<ID>_HEADERS), mirroring execute/auth.ts.
+  if (cfg.headers) Object.assign(h, cfg.headers);
   return h;
 }
 

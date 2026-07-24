@@ -40,6 +40,8 @@ export function authHeadersForService(auth: ServiceAuthConfig): Record<string, s
     default:
       break;
   }
+  // Per-service custom headers (AUTH_<ID>_HEADERS), mirroring execute/auth.ts.
+  if (auth.headers) Object.assign(headers, auth.headers);
   return headers;
 }
 
