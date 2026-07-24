@@ -68,6 +68,36 @@ npm start
 # 启动时自动拉取 services.yaml 里所有服务的 OpenAPI、校验、解引用、建索引
 ```
 
+### 服务连通性自检
+
+新增 / 改完服务后,不用启动网关也能一键探测所有上游是否可达、认证是否有效：
+
+```bash
+npm run ping              # 测 services.yaml 里所有 enabled 的服务
+npm run ping -- emby      # 只测指定服务（可带多个 id）
+```
+
+每个服务测两项：
+
+| 探测项 | 含义 |
+|--------|------|
+| **spec** | 拉取 `source`（OpenAPI 文档 / GraphQL introspection）——就是网关 `discover()` 干的事 |
+| **business** | 带认证请求一个轻量 GET（如 `/System/Info/Public`、`/health`）;401/403 会标 ❌ |
+
+凭据完全复用网关运行时（读 `services.yaml` + `.env` 的 `AUTH_<ID>_*`）,不重复硬编码。退出码反映成败（全过 `0`、否则 `1`）,便于接入 CI。示例输出：
+
+```
+▌ emby  [openapi]
+  source:  https://emby.<YOUR_DOMAIN>:18443/openapi
+  baseUrl: https://emby.<YOUR_DOMAIN>:18443
+  auth:    X-Emby-Token
+  ✅ spec      200  1912ms  { "openapi": "3.0.1", ... }
+  ✅ business  200  20ms    {"ServerName":"Remote","Version":"4.9.5.0",...}
+           ↳ https://emby.<YOUR_DOMAIN>:18443/System/Info/Public
+```
+
+> 💡 business 探测的健康端点按 hostname 兜底（emby/jellyfin → `/System/Info/Public`、seerr → `/status`、其它 → `/health`）。端点选错导致的 404 不代表服务不可用——只要 spec 探测通过,网关注册就不会受影响。
+
 用 curl 冒烟测试 MCP 协议（Streamable HTTP）：
 
 ```bash
@@ -108,6 +138,8 @@ src/
 └── schemas/            # Zod 工具 IO 契约
 scripts/
 ├── bootstrap.ts        # 注册并打印摘要（自带内联上游，不启动 HTTP）
+├── ping-service.ts     # 服务连通性自检：探测上游可达性 + 认证有效性（不启动 HTTP）
+├── inspect.ts          # 直接查 SQLite：已注册服务 / operation / 检索 / 审计
 ├── test-e2e.ts         # 完整流水线测试（自带内联上游，独立可跑）
 └── lib/test-fixture.ts # 测试夹具：内联 spec + 内联上游
 data/
