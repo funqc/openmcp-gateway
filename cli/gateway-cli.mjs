@@ -147,10 +147,6 @@ function strWidth(s) {
   for (const ch of String(s ?? "")) n += /[\u3000-\u9fff\uff00-\uffef]/.test(ch) ? 2 : 1;
   return n;
 }
-// 数组去重（保序）。
-function unique(arr) {
-  return [...new Set(arr)];
-}
 function padRight(s, w) {
   return s + " ".repeat(Math.max(0, w - strWidth(s)));
 }
@@ -433,7 +429,7 @@ function cmdUpdate(args) {
   writeFileSync(cliPath, cliText);
   println(`✓ 已更新 CLI：${cliPath}`);
 
-  // 5) 拉最新 skill，扫描所有常见 skill 安装位置，列出哪些需要重装。
+  // 5) 拉最新 skill，直接覆盖仓库源 + 所有已安装的副本，一键同步到位。
   const skillText = fetchSync(skillUrl);
   if (skillText) {
     const repo = findRepoRoot();
@@ -446,26 +442,24 @@ function cmdUpdate(args) {
       join(home, ".claude", "skills", "openmcp-gateway", "SKILL.md"),
     ].filter(Boolean);
 
+    // 只覆盖已存在的副本——不主动创建用户没在用的 Agent 目录。
     const installed = skillCandidates.filter((p) => existsSync(p));
-    const outdated = installed.filter((p) => readFileSync(p, "utf8") !== skillText);
-
-    if (repo) {
-      // 仓库内的 skill 源也一起更新（保持仓库与 CLI 同步）。
-      writeFileSync(join(repo, "skills", "openmcp-gateway", "SKILL.md"), skillText);
-      println(`✓ 已同步仓库内 skill 源：${join(repo, "skills", "openmcp-gateway", "SKILL.md")}`);
+    let updated = 0;
+    let skipped = 0;
+    for (const p of installed) {
+      if (readFileSync(p, "utf8") === skillText) { skipped++; continue; }
+      writeFileSync(p, skillText);
+      println(`✓ 已更新 skill：${p}`);
+      updated++;
     }
-
     if (installed.length === 0) {
       println(`ℹ 未检测到已安装的 skill。如需使用：gateway-cli install-skill`);
-    } else if (outdated.length === 0) {
-      println(`✓ skill 已是最新（检查了 ${installed.length} 处安装位置）。`);
+    } else if (updated === 0) {
+      println(`✓ skill 已是最新（${skipped} 处安装位置均无需更新）。`);
+    } else if (skipped > 0) {
+      println(`✓ skill 更新完成（更新 ${updated} 处，${skipped} 处已是最新）。`);
     } else {
-      println(`⬆ skill 有更新，以下位置需要重装：`);
-      for (const p of outdated) println(`    ${p}`);
-      // 给出针对每个过期位置的精确重装命令。
-      const dirs = unique(outdated.map((p) => dirname(p)));
-      println(`  请运行（按你的安装位置）：`);
-      for (const d of dirs) println(`    gateway-cli install-skill ${d}`);
+      println(`✓ skill 更新完成（${updated} 处）。`);
     }
   } else {
     println(`（skill 拉取失败，已跳过：${skillUrl}）`);
