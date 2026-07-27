@@ -41,38 +41,38 @@ async function main(): Promise<void> {
     const backend = await getSearch();
     const hits = await backend.search({ query: "delete a file permanently", limit: 5 });
     assert(hits.length > 0, "检索返回了结果");
-    const deleteOp = hits.find((h) => h.operationId === "deleteFile");
-    assert(!!deleteOp, "结果中包含 deleteFile");
+    const deleteOp = hits.find((h) => h.operationId === "files_deleteFile");
+    assert(!!deleteOp, "结果中包含 files_deleteFile");
     if (deleteOp) console.log(`    score=${deleteOp.score.toFixed(3)}`);
 
     // 3. EXECUTE —— 安全读。
-    console.log("\n— execute_api: listFiles (safe GET)");
-    const listRes = await execute("listFiles", { limit: 10 }, undefined, { sessionId: "test", caller: "e2e", mcpServer: null });
-    assert(listRes.ok === true && listRes.status === "success", "listFiles 成功");
+    console.log("\n— execute_api: files_listFiles (safe GET)");
+    const listRes = await execute("files_listFiles", { limit: 10 }, undefined, { sessionId: "test", caller: "e2e", mcpServer: null });
+    assert(listRes.ok === true && listRes.status === "success", "files_listFiles 成功");
     assert(Array.isArray((listRes.data as { items?: unknown[] })?.items), "返回了文件列表");
 
     // 4. EXECUTE —— 校验错误（createFile 缺 body）。
-    console.log("\n— execute_api: createFile (validation_error — 缺 body)");
-    const badRes = await execute("createFile", undefined, undefined, { sessionId: "test", caller: "e2e", mcpServer: null });
-    assert(badRes.status === "validation_error", "createFile 缺 body → validation_error");
+    console.log("\n— execute_api: files_createFile (validation_error — 缺 body)");
+    const badRes = await execute("files_createFile", undefined, undefined, { sessionId: "test", caller: "e2e", mcpServer: null });
+    assert(badRes.status === "validation_error", "files_createFile 缺 body → validation_error");
 
     // 5. EXECUTE —— 危险操作未确认 → confirmation_required。
-    console.log("\n— execute_api: deleteFile (dangerous, 未 confirm → confirmation_required)");
-    const gateRes = await execute("deleteFile", { fileId: "f-1" }, undefined, { sessionId: "test", caller: "e2e", mcpServer: null });
-    assert(gateRes.status === "confirmation_required", "deleteFile 未 confirm → confirmation_required");
+    console.log("\n— execute_api: files_deleteFile (dangerous, 未 confirm → confirmation_required)");
+    const gateRes = await execute("files_deleteFile", { fileId: "f-1" }, undefined, { sessionId: "test", caller: "e2e", mcpServer: null });
+    assert(gateRes.status === "confirmation_required", "files_deleteFile 未 confirm → confirmation_required");
 
     // 6. EXECUTE —— 危险操作确认后执行。先建一个新文件，保证可重复运行。
-    console.log("\n— execute_api: deleteFile (confirm:true → 执行)");
-    const created = await execute("createFile", { body: { path: `/tmp/e2e-${Date.now()}.txt`, contents: "hello" } }, true, { sessionId: "test", caller: "e2e", mcpServer: null });
-    assert(created.ok === true, "createFile 成功（为删除做准备）");
+    console.log("\n— execute_api: files_deleteFile (confirm:true → 执行)");
+    const created = await execute("files_createFile", { body: { path: `/tmp/e2e-${Date.now()}.txt`, contents: "hello" } }, true, { sessionId: "test", caller: "e2e", mcpServer: null });
+    assert(created.ok === true, "files_createFile 成功（为删除做准备）");
     const targetId = (created.data as { id?: string })?.id ?? "f-1";
-    const delRes = await execute("deleteFile", { fileId: targetId }, true, { sessionId: "test", caller: "e2e", mcpServer: null });
-    assert(delRes.ok === true, `deleteFile confirm 后成功 (id=${targetId})`);
+    const delRes = await execute("files_deleteFile", { fileId: targetId }, true, { sessionId: "test", caller: "e2e", mcpServer: null });
+    assert(delRes.ok === true, `files_deleteFile confirm 后成功 (id=${targetId})`);
 
     // 7. MASKING —— resetShareAccess 响应中 access_token 应被脱敏。
-    console.log("\n— execute_api: resetShareAccess (响应脱敏)");
-    const shareRes = await execute("resetShareAccess", { shareId: "s-1" }, true, { sessionId: "test", caller: "e2e", mcpServer: null });
-    assert(shareRes.ok === true, "resetShareAccess 成功");
+    console.log("\n— execute_api: files_resetShareAccess (响应脱敏)");
+    const shareRes = await execute("files_resetShareAccess", { shareId: "s-1" }, true, { sessionId: "test", caller: "e2e", mcpServer: null });
+    assert(shareRes.ok === true, "files_resetShareAccess 成功");
     const token = (shareRes.data as { access_token?: string } | undefined)?.access_token;
     assert(token === "[REDACTED]", `响应中 access_token 已脱敏 (实际: ${token})`);
 
@@ -82,7 +82,7 @@ async function main(): Promise<void> {
     assert(audit.length >= 5, "审计日志捕获了调用");
     assert(audit.every((a) => typeof a.params_redacted === "string"), "所有审计行的 params 均为 JSON 字符串");
     const ops = new Set(audit.map((a) => a.operation_id));
-    assert(ops.has("deleteFile") && ops.has("listFiles"), "审计覆盖了多个 operation");
+    assert(ops.has("files_deleteFile") && ops.has("files_listFiles"), "审计覆盖了多个 operation");
 
     // 9. 未知 operationId。
     console.log("\n— execute_api: 未知 operationId");

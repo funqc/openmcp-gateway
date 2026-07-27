@@ -251,7 +251,7 @@ interface OperationSearch {
 // 输出（structuredContent）
 { "total": 3,
   "results": [{
-    "operation_id": "deleteFile",
+    "operation_id": "files_deleteFile",
     "service_id": "files",
     "method": "DELETE", "path": "/files/{fileId}",
     "summary": "Delete a file permanently",
@@ -270,7 +270,7 @@ Agent 在一次往返中就能拿到 **决策与执行所需的全部信息** �
 
 ```jsonc
 // 输入
-{ "operation_id": "deleteFile",
+{ "operation_id": "files_deleteFile",
   "params": { "fileId": "f-2" },        // path/query/header/body 合并
   "confirm"?: true }                     // 人类确认后跳过 elicitation
 

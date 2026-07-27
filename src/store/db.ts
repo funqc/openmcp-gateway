@@ -18,7 +18,10 @@ CREATE TABLE IF NOT EXISTS services (
   spec_version  TEXT,
   spec_hash     TEXT NOT NULL,
   auth_scheme   TEXT NOT NULL DEFAULT 'none',
-  registered_at INTEGER NOT NULL
+  registered_at INTEGER NOT NULL,
+  -- operation 提取逻辑版本号。提取逻辑变了（如本次加 service 前缀）就 bump，
+  -- 即使 spec hash 未变也强制重新提取，保证 DB 里的 operation 与最新逻辑一致。
+  schema_version INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS operations (
@@ -77,6 +80,14 @@ export function getDb(): Database.Database {
   // graphql_query: stores the auto-generated document for GraphQL-sourced ops.
   if (!cols.some((c) => c.name === "graphql_query")) {
     conn.exec("ALTER TABLE operations ADD COLUMN graphql_query TEXT");
+  }
+  // schema_version on services: forces re-extraction when the operation-id
+  // generation logic changes (e.g. adding the serviceId_ prefix). Old DBs have
+  // no such column → treat as version 0, which is below CURRENT_SCHEMA_VERSION,
+  // so the first boot after upgrade re-registers every service.
+  const svcCols = conn.prepare("PRAGMA table_info(services)").all() as { name: string }[];
+  if (!svcCols.some((c) => c.name === "schema_version")) {
+    conn.exec("ALTER TABLE services ADD COLUMN schema_version INTEGER NOT NULL DEFAULT 0");
   }
   _db = conn;
   return conn;

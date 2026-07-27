@@ -13,7 +13,7 @@ import { getAuthForService, loadServiceDescriptors } from "../config.js";
 import type { OperationRecord, ServiceRecord } from "../types.js";
 import * as store from "../store/operation-store.js";
 import { loadSpec, parseAndValidate, resolveBaseUrl } from "./parser.js";
-import { extractOperations } from "./operation-extractor.js";
+import { extractOperations, OPERATION_SCHEMA_VERSION } from "./operation-extractor.js";
 import { ingestGraphql, authHeadersForService } from "./graphql-source.js";
 import type { OperationSearch } from "../search/types.js";
 import { logAudit } from "../governance/audit.js";
@@ -70,6 +70,7 @@ async function ingestOpenapi(opts: RegisterOptions): Promise<Ingested> {
       specHash: hash,
       authScheme: auth.scheme,
       registeredAt: Date.now(),
+      schemaVersion: OPERATION_SCHEMA_VERSION,
     },
   };
 }
@@ -102,6 +103,7 @@ async function ingestGraphQL(opts: RegisterOptions): Promise<Ingested> {
       specHash: result.hash,
       authScheme: auth.scheme,
       registeredAt: Date.now(),
+      schemaVersion: OPERATION_SCHEMA_VERSION,
     },
   };
 }
@@ -124,10 +126,13 @@ export class Registry {
 
     const { hash, operations, service } = ingested;
 
-    // 去重：哈希未变、且 baseUrl 也没变（或调用方未指定 baseUrl）时跳过。
+    // 去重：哈希未变、baseUrl 未变、且提取逻辑版本号也不低于当前值时才跳过。
+    // schemaVersion 变了（如本次加 service 前缀）即使 spec hash 相同也强制重提，
+    // 保证存量 DB 升级到最新提取逻辑。
     const existing = store.getService(opts.serviceId);
     const baseUrlUnchanged = !service.baseUrl || existing?.baseUrl === service.baseUrl;
-    if (existing && existing.specHash === hash && baseUrlUnchanged) {
+    const schemaUpToDate = !existing || existing.schemaVersion >= OPERATION_SCHEMA_VERSION;
+    if (existing && existing.specHash === hash && baseUrlUnchanged && schemaUpToDate) {
       return { serviceId: opts.serviceId, inserted: 0, skipped: true, hash };
     }
 

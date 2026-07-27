@@ -6,6 +6,17 @@
 import type { HttpMethod, OperationRecord, RiskLevel } from "../types.js";
 import { classifyRisk } from "./risk-classifier.js";
 
+/**
+ * operation 提取逻辑的版本号。每次改变了 id 生成方式或 schema 结构就 +1。
+ * Registry.register() 会把它写进 services.schema_version，去重判断时若 DB 里
+ * 的版本号小于当前值，即使 spec hash 未变也强制重新提取，从而把存量 DB
+ * 升级到新逻辑。
+ *
+ * 版本历史：
+ *   1 = OpenAPI operationId 强制加 `${serviceId}_` 前缀（保证跨服务全局唯一）。
+ */
+export const OPERATION_SCHEMA_VERSION = 1;
+
 const OPENAPI_VERBS = ["get", "post", "put", "patch", "delete", "head", "options"] as const;
 
 type JsonSchema = Record<string, unknown>;
@@ -83,6 +94,8 @@ function makeExample(
   operation: OpenApiOperation,
   paramsSchema: JsonSchema,
   bodySchema: JsonSchema | null,
+  /** 带前缀的最终 operationId（示例里展示给用户/Agent 调用用的就是它）。 */
+  operationId: string,
 ): string {
   const props = (paramsSchema.properties ?? {}) as Record<string, JsonSchema>;
   const pathParams: Record<string, unknown> = {};
@@ -101,7 +114,7 @@ function makeExample(
     : "";
   const bodySample = bodySchema ? sampleFor(bodySchema) : null;
   const lines: string[] = [`# ${method} ${serviceId}${resolvedPath}${qs}`];
-  lines.push(`operation_id: ${operation.operationId ?? "(none)"}`);
+  lines.push(`operation_id: ${operationId}`);
   if (operation.summary) lines.push(`summary: ${operation.summary}`);
   lines.push("");
   lines.push("params:");
@@ -167,10 +180,16 @@ export function extractOperations(
     for (const verb of OPENAPI_VERBS) {
       const operation = pathItem[verb] as OpenApiOperation | undefined;
       if (!operation) continue;
-      // operationId is required for the registry; synthesize if missing.
-      const operationId =
+      // 始终给 operationId 加 serviceId 前缀，保证跨服务全局唯一。
+      // 原因：operations 表主键是 id 单列，若直接用 spec 里的裸 operationId，
+      // 跨服务同名（如 getStatus/ping）会 UPSERT 互相覆盖、静默丢数据。
+      // 与 graphql-source.ts 的 `${serviceId}_${field.name}` 命名对齐。
+      // policy 的 allow/deny/riskOverrides 也按这个带前缀的 id 匹配（更清晰，
+      // 本就该区分服务）。spec 没写 operationId 时再 fallback 到 path 派生。
+      const rawId =
         operation.operationId ??
-        `${serviceId}_${verb}_${path.replace(/[^a-zA-Z0-9]/g, "_")}`;
+        `${verb}_${path.replace(/[^a-zA-Z0-9]/g, "_")}`;
+      const operationId = `${serviceId}_${rawId}`;
       const method = verb.toUpperCase() as HttpMethod;
       const paramsSchema = buildParamsSchema(operation.parameters);
       const { schema: bodySchema, required: bodyRequired } = deriveBody(operation.requestBody);
@@ -184,6 +203,7 @@ export function extractOperations(
         operation,
         paramsSchema,
         bodySchema,
+        operationId,
       );
       operations.push({
         id: operationId,

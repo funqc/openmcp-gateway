@@ -14,6 +14,7 @@ interface ServiceRow {
   spec_hash: string;
   auth_scheme: string;
   registered_at: number;
+  schema_version: number | null;
 }
 interface OperationRow {
   id: string;
@@ -41,6 +42,7 @@ function rowToService(r: ServiceRow): ServiceRecord {
     specHash: r.spec_hash,
     authScheme: r.auth_scheme as ServiceRecord["authScheme"],
     registeredAt: r.registered_at,
+    schemaVersion: r.schema_version ?? 0,
   };
 }
 
@@ -67,14 +69,15 @@ function rowToOperation(r: OperationRow): OperationRecord {
 
 export function upsertService(svc: ServiceRecord): void {
   db.prepare(
-    `INSERT INTO services (id,name,base_url,spec_version,spec_hash,auth_scheme,registered_at)
-     VALUES (@id,@name,@base_url,@spec_version,@spec_hash,@auth_scheme,@registered_at)
+    `INSERT INTO services (id,name,base_url,spec_version,spec_hash,auth_scheme,registered_at,schema_version)
+     VALUES (@id,@name,@base_url,@spec_version,@spec_hash,@auth_scheme,@registered_at,@schema_version)
      ON CONFLICT(id) DO UPDATE SET
        name=excluded.name,
        base_url=excluded.base_url,
        spec_version=excluded.spec_version,
        spec_hash=excluded.spec_hash,
-       auth_scheme=excluded.auth_scheme`,
+       auth_scheme=excluded.auth_scheme,
+       schema_version=excluded.schema_version`,
   ).run({
     id: svc.id,
     name: svc.name,
@@ -83,6 +86,7 @@ export function upsertService(svc: ServiceRecord): void {
     spec_hash: svc.specHash,
     auth_scheme: svc.authScheme,
     registered_at: svc.registeredAt,
+    schema_version: svc.schemaVersion,
   });
 }
 

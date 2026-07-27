@@ -44,6 +44,8 @@ gateway-cli search "标记已看" --service emby    # 限定在某服务内检�
 
 `search` 返回每个命中接口的 `operation_id`、HTTP 方法、路径、风险等级、必填参数、匹配度。
 
+> **关于 operation_id 格式**：每个 id 自动带服务前缀（如 `filesystem_list_files_...`、`seerr_get__discover_trending`），保证跨服务全局唯一。`exec` 时直接用 `search` 返回的完整 id，不要手动拼接或截断。
+
 ### 步骤 2：执行
 
 ```bash
