@@ -14,8 +14,10 @@ import { classifyRisk } from "./risk-classifier.js";
  *
  * 版本历史：
  *   1 = OpenAPI operationId 强制加 `${serviceId}_` 前缀（保证跨服务全局唯一）。
+ *   2 = 前缀幂等化——若 spec 的 operationId 已以 serviceId_ 开头，不重复加，
+ *       避免 emby_emily_getArtists 这种双重前缀。
  */
-export const OPERATION_SCHEMA_VERSION = 1;
+export const OPERATION_SCHEMA_VERSION = 2;
 
 const OPENAPI_VERBS = ["get", "post", "put", "patch", "delete", "head", "options"] as const;
 
@@ -189,7 +191,9 @@ export function extractOperations(
       const rawId =
         operation.operationId ??
         `${verb}_${path.replace(/[^a-zA-Z0-9]/g, "_")}`;
-      const operationId = `${serviceId}_${rawId}`;
+      // 幂等加前缀：若 rawId 已以 serviceId_ 开头（spec 作者自己加了前缀），
+      // 不重复加，避免出现 emby_emby_getArtists 这种双重前缀。
+      const operationId = rawId.startsWith(`${serviceId}_`) ? rawId : `${serviceId}_${rawId}`;
       const method = verb.toUpperCase() as HttpMethod;
       const paramsSchema = buildParamsSchema(operation.parameters);
       const { schema: bodySchema, required: bodyRequired } = deriveBody(operation.requestBody);
