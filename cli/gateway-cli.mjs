@@ -332,8 +332,13 @@ async function cmdAudit(args) {
 }
 
 // ---- install-skill --------------------------------------------------------
+// 支持两种写法（符合直觉，避免用户漏写 --target）：
+//   gateway-cli install-skill                       → 装到默认 ~/.zcode/skills
+//   gateway-cli install-skill <dir>                 → 装到 <dir>（裸路径）
+//   gateway-cli install-skill --target <dir>        → 装到 <dir>（显式 flag）
 function cmdInstallSkill(args) {
-  const target = args.flags.target || join(homedir(), ".zcode", "skills");
+  // --target 优先；否则取第一个位置参数；都没有则用默认值。
+  const target = args.flags.target || args.positional[0] || join(homedir(), ".zcode", "skills");
   const skillId = "openmcp-gateway";
 
   // skill 源目录：仓库内 skills/openmcp-gateway/
@@ -489,7 +494,7 @@ function usage() {
   search "<自然语言>" [--service <id>] [--limit N]  语义检索，找 operation_id
   exec <operation_id> [options]        执行一个 operation
   audit [N]                            最近 N 条审计（默认 20）
-  install-skill [--target <dir>]       安装配套 skill 到 Agent skills 目录
+  install-skill [<dir>]                安装配套 skill 到 Agent skills 目录（默认 ~/.zcode/skills）
   update [--branch <name>] [--check]   从 git 仓库拉取最新 CLI/skill
 
 exec 选项:
@@ -500,7 +505,7 @@ exec 选项:
 
 通用选项:
   --json                输出原始 JSON（适用于 services/ops/search/audit/exec）
-  --target <dir>        install-skill 的目标目录（默认 ~/.zcode/skills）
+  --target <dir>        install-skill 的目标目录（也可用裸路径：install-skill <dir>）
   --branch <name>       update 的远端分支（默认 main）
   --check               update 只比对不写
 
