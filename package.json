@@ -6,6 +6,9 @@
   "engines": {
     "node": ">=20"
   },
+  "bin": {
+    "gateway-cli": "cli/gateway-cli.mjs"
+  },
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",
@@ -14,7 +17,8 @@
     "test:e2e": "tsx scripts/test-e2e.ts",
     "bootstrap": "tsx scripts/bootstrap.ts",
     "ping": "tsx scripts/ping-service.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "cli": "node cli/gateway-cli.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.24.3",

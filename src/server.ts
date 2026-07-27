@@ -18,6 +18,7 @@ import { executeInput, executeOutput } from "./schemas/execute.js";
 import { getRegistry } from "./services.js";
 import * as store from "./store/operation-store.js";
 import { execute } from "./execute/executor.js";
+import { enrichSearchHits } from "./search/format.js";
 import type { HttpMethod } from "./types.js";
 
 export interface ServerDeps {
@@ -55,8 +56,7 @@ export function createMcpServer(deps: ServerDeps): McpServer {
       title: "搜索 API",
       description:
         "用自然语言在已注册的 OpenAPI 接口目录中检索，返回最匹配的接口（含参数、风险等级、可直接使用的调用示例）。\n" +
-        "先用本工具发现该调哪个接口，再用 execute_api 执行。\n" +
-        "对于批量/可固化的重复任务，可查到 operation_id 后改用 REST 端点 POST /exec/<operation_id> 走脚本调用（见网关启动日志或文档），无需反复经 LLM。\n\n" +
+        "先用本工具发现该调哪个接口，再用 execute_api 执行。\n\n" +
         "当前已注册的服务：\n" +
         catalog +
         "\n\n用自然语言描述你的意图即可，例如「搜索漫画」「列出所有库」「获取阅读进度」。",
@@ -78,28 +78,7 @@ export function createMcpServer(deps: ServerDeps): McpServer {
       });
 
       // 用完整的 operation 元数据充实每个命中结果，供 Agent 决策。
-      const results = scored
-        .map((s) => {
-          const op = store.getOperation(s.operationId);
-          if (!op) return null;
-          const req = [...((op.paramsSchema as { required?: string[] }).required ?? [])];
-          if (op.bodyRequired) req.push("body");
-          return {
-            operation_id: op.id,
-            service_id: op.serviceId,
-            method: op.method,
-            path: op.path,
-            summary: op.summary,
-            description: op.description,
-            tags: op.tags,
-            risk_level: op.riskLevel,
-            required_params: req,
-            body_required: !!op.bodySchema,
-            example: op.example,
-            score: Math.round(s.score * 1000) / 1000,
-          };
-        })
-        .filter((r): r is NonNullable<typeof r> => r !== null);
+      const results = enrichSearchHits(scored);
 
       const structuredContent = { total: results.length, results };
       return {
@@ -135,10 +114,7 @@ export function createMcpServer(deps: ServerDeps): McpServer {
       description:
         "按 operation_id 执行一个已注册的 API 接口。网关自动解析 URL、HTTP 方法、认证，校验参数，" +
         "发起调用，脱敏响应中的敏感字段，返回结果。\n" +
-        "对于 elevated/dangerous（高风险）操作，需先与用户确认，再传 confirm:true（否则网关会发起交互确认）。\n" +
-        "对于批量或可脚本化的重复调用，本网关同时提供 REST 入口 POST /exec/<operation_id>" +
-        "（body: {params, confirm}，鉴权同本工具），供 Python/Shell 等脚本绕过 LLM 直接调用，节省 token；" +
-        "治理（鉴权/策略/审计/脱敏/风险确认）与本工具完全一致。\n\n" +
+        "对于 elevated/dangerous（高风险）操作，需先与用户确认，再传 confirm:true（否则网关会发起交互确认）。\n\n" +
         "可执行的服务：\n" +
         catalog,
       inputSchema: executeInput,

@@ -19,7 +19,7 @@
 - **响应脱敏** —— 敏感字段（`password`、`token`、`access_token` 等）在工具输出与审计日志中均被脱敏。
 - **调用审计** —— 每次 `execute_api` 调用都追加写入审计日志（参数已脱敏）。
 - **统一治理** —— 通过策略文件实现按服务的启用/禁用、允许/拒绝清单、脱敏规则、按 Operation 的风险等级覆盖。
-- **脚本化直调入口（REST `/exec`）** —— 除 MCP 外，同时暴露 `POST /exec/<operation_id>`，供 Python/Shell 等脚本绕过 LLM 直接调用，适合批量、可固化、零 token 的工作流；治理与 `execute_api` 完全一致。
+- **双通路架构（MCP 或 CLI，二选一）** —— 对外提供两条互相独立、互不引用的通路，用户按需选其一：**MCP**（`search_api` + `execute_api` 工具，给 LLM/Agent 用）或 **CLI**（`gateway-cli` 二进制 + REST 端点，给脚本/终端用）。两者底层共用同一个 `execute()` 管道，治理（鉴权/策略/审计/脱敏/风险确认）完全一致。配套 `skills/openmcp-gateway/SKILL.md` 教会 Agent 用 CLI（自身不引用 MCP），`gateway-cli update` 可从 git 仓库 self-update。
 
 ## 快速开始
 
@@ -121,19 +121,61 @@ curl -s -X POST http://127.0.0.1:3001/mcp \
   -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"execute_api","arguments":{"operation_id":"listFiles","params":{"limit":5}}}}'
 ```
 
-## 脚本化调用（REST `/exec`）
+## CLI 通路（脚本/终端直调）
 
-对于**批量、可固化、零 token**的工作流，不必让 Agent 一轮轮经 LLM 调 `execute_api`——网关同时暴露一个 REST 入口，让任意脚本直接打到同一个 `execute()`：
+对于**批量、可固化、零 token**的工作流，不必让 Agent 一轮轮经 LLM 调 `execute_api`——网关提供一条**与 MCP 完全独立的 CLI 通路**：`gateway-cli` 二进制 + 一组 REST 端点，让任意脚本/终端直接打到同一个 `execute()` 管道。
+
+> **双通路原则**：MCP（`search_api`/`execute_api` 工具）与 CLI（`gateway-cli` + REST）互相独立、互不引用，底层共用 `execute()`，治理（鉴权/策略/审计/脱敏/风险确认）完全一致。审计里 `caller` 分别为 `http:exec`、MCP 会话 id 等，便于区分。不要把 CLI 经 MCP 调用，也不要在 MCP 工具描述里引用 CLI。
+
+### gateway-cli 命令行
+
+零依赖单文件脚本（仅 Node 20+ 内置能力，拷过去即用）。`npm link` 后全局可用，或直接 `node cli/gateway-cli.mjs`：
+
+```bash
+# 配置（写入 .env 或 shell profile）
+export OPENMCP_GATEWAY_URL=http://127.0.0.1:3001
+export OPENMCP_GATEWAY_KEY=<GATEWAY_API_KEY>        # 服务端 GATEWAY_API_KEY；未配置服务端鉴权时可留空
+export OPENMCP_GATEWAY_REPO=<仓库地址>               # self-update 源（可选）
+
+# 核心工作流：先搜索，再执行
+gateway-cli services                       # 列出已注册服务
+gateway-cli ops [service_id]               # 列出 operation
+gateway-cli search "搜索漫画"              # 语义检索，找 operation_id
+gateway-cli exec <operation_id> \
+    --param key=value [--confirm] [--json] # 执行（值自动按 JSON 解析）
+
+# 浏览与维护
+gateway-cli audit 20                       # 最近 20 条审计
+gateway-cli version                        # 版本与配置
+gateway-cli update [--check]               # 从 git 仓库 self-update
+gateway-cli install-skill                  # 装 skills/openmcp-gateway 到 ~/.zcode/skills
+```
+
+**退出码**（脚本可凭此判断成败）：`0` 成功 / `1` 用法错误 / `2` 参数校验失败 / `3` 需确认(高风险) / `4` 被拒绝 / `5` 未找到 / `6` 上游错误 / `7` 网络错误。
+
+详见 `skills/openmcp-gateway/SKILL.md`（`gateway-cli install-skill` 可自动安装到 Agent skills 目录）。
+
+### REST 端点（CLI 底层）
+
+`gateway-cli` 走的是以下 REST 端点，任意能发 HTTP 的程序都可直调（与 `/mcp` 共用 `GATEWAY_API_KEY`）：
+
+```
+GET  /services                            服务清单
+GET  /ops?service_id=<id>                 operation 清单（可按服务过滤）
+GET  /search?q=<自然语言>&limit=N          语义检索
+POST /exec/<operation_id>                 执行
+GET  /audit?limit=N                       最近 N 条审计（参数已脱敏）
+```
+
+`POST /exec`：
 
 ```
 POST /exec/<operation_id>
-Header: X-API-Key: <GATEWAY_API_KEY>   （与 /mcp 共用，见「访问鉴权」）
+Header: Authorization: Bearer <GATEWAY_API_KEY>   （或 X-API-Key，见「访问鉴权」）
 Body:   { "params": { ... }, "confirm": true|false }
 ```
 
-底层就是 `execute_api` 用的那个 `execute()`，所以鉴权、策略、参数校验、响应脱敏、审计、风险确认**完全一致**——审计里 `caller` 标为 `http:exec` 便于区分。REST 是无状态的（无需 MCP 会话），更适合脚本批处理。
-
-### 何时用 `/exec` 而非 MCP
+### 何时用 CLI 而非 MCP
 
 - **批量/重复任务**（对成百上千条数据执行同一组操作）。
 - **想把 workflow 固化成代码**（版本控制、测试、复用）。
@@ -184,7 +226,129 @@ for item in items:
 | `not_found` | 404 | `operation_id` 未知 |
 | `upstream_error` | 502 | 上游 5xx / 网络错误 |
 
-> **提示**：用 `search_api`（或 `npx tsx scripts/inspect.ts search "..."`）查出目标 `operation_id`，再用 `/exec` 批量调用。
+> **提示**：用 `gateway-cli search "..."`（或 `search_api`、`npx tsx scripts/inspect.ts search "..."`）查出目标 `operation_id`，再用 `gateway-cli exec` 或 `POST /exec` 批量调用。
+
+## 把多个 API 组合成 Workflow（自定义场景 Skill）
+
+`openmcp-gateway` 这个 skill 保持**原子化**——它只教「先 search、再 exec」两个动作，故意不内置任何具体业务编排。当某个场景需要**把多个 API 串起来**（跨服务、多步骤、带分支判断）时，**不要去改 gateway skill**，而是新建一个独立的「场景 skill」，在里面通过 `gateway-cli`（或直接打 REST）引用网关能力。
+
+### 分层原则
+
+```
+┌─────────────────────────────────────────────┐
+│  你的场景 skill（如 media-organize）         │  ← 你写的：业务编排、固定参数、分支逻辑
+│   scripts/*.sh 调 gateway-cli exec ...      │
+└──────────────────┬──────────────────────────┘
+                   │ gateway-cli（search / exec）
+                   ▼
+┌─────────────────────────────────────────────┐
+│  openmcp-gateway skill + gateway-cli        │  ← 原子能力：检索 + 执行，不变
+└──────────────────┬──────────────────────────┘
+                   │ REST /exec、/search
+                   ▼
+┌─────────────────────────────────────────────┐
+│  网关 → 后端服务（seerr / emby / kavita...） │
+└─────────────────────────────────────────────┘
+```
+
+- **gateway skill 是地基**：只提供 search/exec 原语，所有场景共用。
+- **场景 skill 是上层**：固化「调哪个 operation_id、传什么参数、什么顺序、怎么判断结果」，把网关当库来调。
+- 场景 skill 与 gateway skill **松耦合**：换 operation_id 只需改场景 skill，不动网关。
+
+### 例子：`media-organize` ——「请求影片 → 等下载 → 标记已看」
+
+目标：给一部电影发起请求，确认它已被下载，再把 Emby 里的对应条目标为已看。这是一个跨 seerr + emby 的三步 workflow。
+
+**步骤 1：先用 gateway-cli 摸清要用哪几个 operation_id**
+
+```bash
+gateway-cli search "请求一部电影" --service seerr --limit 3
+gateway-cli search "查询某请求的状态" --service seerr --limit 3
+gateway-cli search "标记某剧集为已看" --service emby --limit 3
+# 记下三个 operation_id，例如：
+#   seerr_post__request            （发起请求，dangerous，需 --confirm）
+#   seerr_get__request__requestId  （查请求状态）
+#   emby_post__items__id__played   （标已看，elevated，需 --confirm）
+```
+
+**步骤 2：创建场景 skill 目录**
+
+```bash
+mkdir -p ~/.zcode/skills/media-organize/scripts
+```
+
+**步骤 3：写一个编排脚本**（`~/.zcode/skills/media-organize/scripts/request-and-mark.sh`）
+
+```bash
+#!/usr/bin/env bash
+# 用法: request-and-mark.sh "<电影名>" "<tmdbId>"
+# 依赖: gateway-cli 已安装且 OPENMCP_GATEWAY_URL/KEY 已配置
+set -euo pipefail
+
+TITLE="$1"; TMDB_ID="$2"
+g() { gateway-cli exec "$@" --json; }   # 统一带 --json 方便解析
+
+# 1) 发起请求（dangerous，必须 --confirm；这里假设人工已确认）
+REQUEST_ID=$(g seerr_post__request \
+    --param 'body={"mediaType":"movie","mediaId":'"$TMDB_ID"'}' \
+    --confirm \
+  | jq -r '.data.id')
+
+echo "✓ 已请求「$TITLE」(requestId=$REQUEST_ID)，等待下载完成..."
+
+# 2) 轮询请求状态直到 available（简化：最多等 10 分钟）
+for i in $(seq 1 20); do
+  STATUS=$(g seerr_get__request__requestId --param requestId="$REQUEST_ID" | jq -r '.data.status')
+  echo "  [$i] status=$STATUS"
+  [ "$STATUS" = "available" ] && break
+  sleep 30
+done
+
+# 3) 在 Emby 里标记已看（elevated，需 --confirm）
+ITEM_ID=$(g emby_get__items --param search="$TITLE" | jq -r '.data.Items[0].Id')
+g emby_post__items__id__played --param itemId="$ITEM_ID" --confirm >/dev/null
+echo "✓ 「$TITLE」已在 Emby 标记为已看"
+```
+
+```bash
+chmod +x ~/.zcode/skills/media-organize/scripts/request-and-mark.sh
+```
+
+**步骤 4：写场景 skill 的 SKILL.md**（`~/.zcode/skills/media-organize/SKILL.md`）
+
+```markdown
+---
+name: media-organize
+description: 影片请求+下载+标记已看的固定 workflow。当用户说「帮我要这部电影并标记已看」「请求某某然后标看完」时触发。底层通过 gateway-cli 调用 seerr/emby，依赖 openmcp-gateway skill 提供的网关能力。
+---
+
+# media-organize
+
+把「请求影片 → 等下载 → 标记已看」固化成一条命令。
+
+## 前置
+- 已安装 openmcp-gateway skill，gateway-cli 可用，网关已启动。
+
+## 用法
+\`\`\`bash
+bash ~/.zcode/skills/media-organize/scripts/request-and-mark.sh "电影名" "<tmdbId>"
+\`\`\`
+
+工作流见脚本注释。如需改用别的服务（如把 emby 换成 jellyfin），改脚本里的 operation_id 即可，不用动网关。
+```
+
+就这样——网关 skill 一行没改，所有业务知识都封在这个场景 skill 里。换 operation_id、加步骤、加错误重试，全在场景 skill 这一层做。
+
+### 何时该新建场景 skill（而不是直接敲 gateway-cli）
+
+- 同一组操作要**反复跑**（每周整理、批量入库、定时同步）。
+- 步骤之间有**数据依赖**（上一步的返回值喂给下一步）。
+- 想让 **Agent/同事一键触发**一个完整流程，而不是手敲三条命令。
+- 流程稳定后想**版本管理**（脚本进 git，可 review、可回滚）。
+
+反之，临时一次性调用、或在对话里探索性试 API，直接 `gateway-cli search` + `gateway-cli exec` 即可，不必建 skill。
+
+> **与 MCP 通路的关系**：如果你更偏好让 LLM 在对话里编排，也可以不写场景 skill，直接用 MCP 的 `search_api`/`execute_api` 让 Agent 即兴组合。两条路互不引用，按场景选其一即可。
 
 ## 项目结构
 
@@ -193,15 +357,22 @@ src/
 ├── index.ts            # 入口：启动 → 发现注册 → 提供服务
 ├── config.ts           # 类型化的环境变量配置
 ├── server.ts           # MCP Server 工厂 —— 注册 search_api + execute_api
-├── transport.ts        # Streamable-HTTP /mcp（有状态会话）
+├── transport.ts        # Streamable-HTTP /mcp（有状态会话）+ 挂载 REST 路由
+├── exec-route.ts       # REST 执行入口 POST /exec/:operationId
+├── search-route.ts     # REST 检索入口 GET /search（CLI 通路）
+├── catalog-route.ts    # REST 目录入口 GET /services、/ops、/audit（CLI 通路）
 ├── services.ts         # 共享的 Registry + Search 容器
 ├── types.ts            # 领域类型
 ├── registry/           # OpenAPI 摄取：解析 → 解引用 → 提取 → 存储
 ├── store/              # SQLite（better-sqlite3）+ FTS5
-├── search/             # 可插拔的 OperationSearch（默认 BM25，可选向量嵌入）
+├── search/             # 可插拔的 OperationSearch（默认 BM25，可选向量嵌入）+ format.ts（命中充实）
 ├── execute/            # 7 步执行流水线（认证、校验、组装、调用、脱敏）
 ├── governance/         # 策略、审计、风险确认、脱敏
 └── schemas/            # Zod 工具 IO 契约
+cli/
+└── gateway-cli.mjs     # CLI 通路二进制（零依赖单文件，含 self-update + install-skill）
+skills/
+└── openmcp-gateway/SKILL.md  # 配套 skill：教 Agent 用 gateway-cli
 scripts/
 ├── bootstrap.ts        # 注册并打印摘要（自带内联上游，不启动 HTTP）
 ├── ping-service.ts     # 服务连通性自检：探测上游可达性 + 认证有效性（不启动 HTTP）

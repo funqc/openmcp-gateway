@@ -17,6 +17,8 @@ import {
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { createMcpServer } from "./server.js";
 import { mountExecRoute } from "./exec-route.js";
+import { mountSearchRoute } from "./search-route.js";
+import { mountCatalogRoute } from "./catalog-route.js";
 import { config } from "./config.js";
 
 interface SessionState {
@@ -134,6 +136,10 @@ export function createApp(): express.Express {
 
   // REST 执行入口（脚本化调用，绕过 LLM）。与 /mcp 共享同一鉴权。
   mountExecRoute(app, mcpAuth);
+
+  // REST 检索 / 目录 / 审计入口（CLI 通路的发现与浏览）。与 /mcp 共享同一鉴权。
+  mountSearchRoute(app, mcpAuth);
+  mountCatalogRoute(app, mcpAuth);
 
   // Health check.
   app.get("/health", (_req, res) => res.json({ ok: true }));
