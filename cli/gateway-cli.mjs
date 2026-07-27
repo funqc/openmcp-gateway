@@ -147,6 +147,10 @@ function strWidth(s) {
   for (const ch of String(s ?? "")) n += /[\u3000-\u9fff\uff00-\uffef]/.test(ch) ? 2 : 1;
   return n;
 }
+// 数组去重（保序）。
+function unique(arr) {
+  return [...new Set(arr)];
+}
 function padRight(s, w) {
   return s + " ".repeat(Math.max(0, w - strWidth(s)));
 }
@@ -429,26 +433,39 @@ function cmdUpdate(args) {
   writeFileSync(cliPath, cliText);
   println(`✓ 已更新 CLI：${cliPath}`);
 
-  // 5) 拉最新 skill，若与仓库内/已安装的有差异则提示重装。
+  // 5) 拉最新 skill，扫描所有常见 skill 安装位置，列出哪些需要重装。
   const skillText = fetchSync(skillUrl);
   if (skillText) {
     const repo = findRepoRoot();
-    const localSkillPath = repo ? join(repo, "skills", "openmcp-gateway", "SKILL.md") : null;
-    const installedSkillPath = join(homedir(), ".zcode", "skills", "openmcp-gateway", "SKILL.md");
-    const candidates = [localSkillPath, installedSkillPath].filter(Boolean);
-    let changed = true;
-    for (const p of candidates) {
-      if (existsSync(p) && readFileSync(p, "utf8") === skillText) { changed = false; break; }
+    // 所有可能装了本 skill 的位置：仓库源 + 各 Agent 的 skills 目录。
+    const home = homedir();
+    const skillCandidates = [
+      repo ? join(repo, "skills", "openmcp-gateway", "SKILL.md") : null,
+      join(home, ".zcode", "skills", "openmcp-gateway", "SKILL.md"),
+      join(home, ".cc-switch", "skills", "openmcp-gateway", "SKILL.md"),
+      join(home, ".claude", "skills", "openmcp-gateway", "SKILL.md"),
+    ].filter(Boolean);
+
+    const installed = skillCandidates.filter((p) => existsSync(p));
+    const outdated = installed.filter((p) => readFileSync(p, "utf8") !== skillText);
+
+    if (repo) {
+      // 仓库内的 skill 源也一起更新（保持仓库与 CLI 同步）。
+      writeFileSync(join(repo, "skills", "openmcp-gateway", "SKILL.md"), skillText);
+      println(`✓ 已同步仓库内 skill 源：${join(repo, "skills", "openmcp-gateway", "SKILL.md")}`);
     }
-    if (changed) {
-      if (repo) {
-        // 仓库内的 skill 源也一起更新（保持仓库与 CLI 同步）。
-        writeFileSync(join(repo, "skills", "openmcp-gateway", "SKILL.md"), skillText);
-        println(`✓ 已同步仓库内 skill：${join(repo, "skills", "openmcp-gateway", "SKILL.md")}`);
-      }
-      println(`⬆ skill 有更新。请运行：gateway-cli install-skill`);
+
+    if (installed.length === 0) {
+      println(`ℹ 未检测到已安装的 skill。如需使用：gateway-cli install-skill`);
+    } else if (outdated.length === 0) {
+      println(`✓ skill 已是最新（检查了 ${installed.length} 处安装位置）。`);
     } else {
-      println(`✓ skill 无变化。`);
+      println(`⬆ skill 有更新，以下位置需要重装：`);
+      for (const p of outdated) println(`    ${p}`);
+      // 给出针对每个过期位置的精确重装命令。
+      const dirs = unique(outdated.map((p) => dirname(p)));
+      println(`  请运行（按你的安装位置）：`);
+      for (const d of dirs) println(`    gateway-cli install-skill ${d}`);
     }
   } else {
     println(`（skill 拉取失败，已跳过：${skillUrl}）`);
