@@ -9,9 +9,10 @@
  *      （fetch / fs / path / child_process / os）。拷过去即用。
  *
  * 配置（环境变量）：
- *   OPENMCP_GATEWAY_URL  网关地址（默认 http://127.0.0.1:3001）
- *   OPENMCP_GATEWAY_KEY  网关 API Key（对应服务端 GATEWAY_API_KEY；未配置服务端鉴权时可留空）
- *   OPENMCP_GATEWAY_REPO self-update 用的 git 仓库地址（HTTPS 或 git@github SSH 形式）
+ *   OPENMCP_GATEWAY_URL          网关地址（默认 http://127.0.0.1:3001）
+ *   OPENMCP_GATEWAY_KEY          网关 API Key（对应服务端 GATEWAY_API_KEY；未配置服务端鉴权时可留空）
+ *   OPENMCP_GATEWAY_REPO         self-update 用的 git 仓库地址（HTTPS 或 git@github SSH 形式）
+ *   OPENMCP_GATEWAY_SKILLS_DIR   skill 安装根目录（默认 ~/.zcode/skills；install-skill 装到这里，update 只扫这一处）
  *
  * 用法见 usage() 或 README。
  */
@@ -57,7 +58,18 @@ function cfg() {
     baseUrl: (process.env.OPENMCP_GATEWAY_URL || "http://127.0.0.1:3001").replace(/\/+$/, ""),
     apiKey: process.env.OPENMCP_GATEWAY_KEY || "",
     repo: process.env.OPENMCP_GATEWAY_REPO || "",
+    /**
+     * skill 安装根目录（skills 目录本身，不含 openmcp-gateway 子目录）。
+     * install-skill 默认装到这里；update 默认只扫这一处。
+     * 默认 ~/.zcode/skills（ZCode 约定）。cc-switch 用户可设为 ~/.cc-switch/skills。
+     */
+    skillsDir: process.env.OPENMCP_GATEWAY_SKILLS_DIR || join(homedir(), ".zcode", "skills"),
   };
+}
+
+/** 本 skill 在安装目录里的完整路径（SKILL.md 所在）。 */
+function installedSkillPath() {
+  return join(cfg().skillsDir, "openmcp-gateway", "SKILL.md");
 }
 
 function versionFilePath() {
@@ -333,12 +345,12 @@ async function cmdAudit(args) {
 
 // ---- install-skill --------------------------------------------------------
 // 支持两种写法（符合直觉，避免用户漏写 --target）：
-//   gateway-cli install-skill                       → 装到默认 ~/.zcode/skills
+//   gateway-cli install-skill                       → 装到默认 $OPENMCP_GATEWAY_SKILLS_DIR（~/.zcode/skills）
 //   gateway-cli install-skill <dir>                 → 装到 <dir>（裸路径）
 //   gateway-cli install-skill --target <dir>        → 装到 <dir>（显式 flag）
 function cmdInstallSkill(args) {
-  // --target 优先；否则取第一个位置参数；都没有则用默认值。
-  const target = args.flags.target || args.positional[0] || join(homedir(), ".zcode", "skills");
+  // --target 优先；否则取第一个位置参数；都没有则用环境变量/默认值。
+  const target = args.flags.target || args.positional[0] || cfg().skillsDir;
   const skillId = "openmcp-gateway";
 
   // skill 源目录：仓库内 skills/openmcp-gateway/
@@ -429,37 +441,19 @@ function cmdUpdate(args) {
   writeFileSync(cliPath, cliText);
   println(`✓ 已更新 CLI：${cliPath}`);
 
-  // 5) 拉最新 skill，直接覆盖所有已安装的副本，一键同步到位。
-  //    注意：仓库源（skills/openmcp-gateway/SKILL.md）不在此列——它是 git 跟踪
-  //    文件，跟着 git 版本走；update 去写它只会制造本地未提交修改，与 git 冲突。
+  // 5) 拉最新 skill，覆盖到配置的安装目录（OPENMCP_GATEWAY_SKILLS_DIR，默认 ~/.zcode/skills）。
+  //    仓库源不在此列——它是 git 跟踪文件，跟着 git 版本走；update 去写它只会
+  //    制造本地未提交修改，与 git 冲突。扫描路径由环境变量控制，只看一处。
   const skillText = fetchSync(skillUrl);
   if (skillText) {
-    // 只扫描各 Agent 的 skills 安装目录（不含仓库源）。
-    const home = homedir();
-    const skillCandidates = [
-      join(home, ".zcode", "skills", "openmcp-gateway", "SKILL.md"),
-      join(home, ".cc-switch", "skills", "openmcp-gateway", "SKILL.md"),
-      join(home, ".claude", "skills", "openmcp-gateway", "SKILL.md"),
-    ];
-
-    // 只覆盖已存在的副本——不主动创建用户没在用的 Agent 目录。
-    const installed = skillCandidates.filter((p) => existsSync(p));
-    let updated = 0;
-    let skipped = 0;
-    for (const p of installed) {
-      if (readFileSync(p, "utf8") === skillText) { skipped++; continue; }
-      writeFileSync(p, skillText);
-      println(`✓ 已更新 skill：${p}`);
-      updated++;
-    }
-    if (installed.length === 0) {
-      println(`ℹ 未检测到已安装的 skill。如需使用：gateway-cli install-skill`);
-    } else if (updated === 0) {
-      println(`✓ skill 已是最新（${skipped} 处安装位置均无需更新）。`);
-    } else if (skipped > 0) {
-      println(`✓ skill 更新完成（更新 ${updated} 处，${skipped} 处已是最新）。`);
+    const dest = installedSkillPath();
+    if (!existsSync(dest)) {
+      println(`ℹ 未检测到已安装的 skill（${dest}）。如需使用：gateway-cli install-skill`);
+    } else if (readFileSync(dest, "utf8") === skillText) {
+      println(`✓ skill 已是最新（${dest}）。`);
     } else {
-      println(`✓ skill 更新完成（${updated} 处）。`);
+      writeFileSync(dest, skillText);
+      println(`✓ 已更新 skill：${dest}`);
     }
   } else {
     println(`（skill 拉取失败，已跳过：${skillUrl}）`);
@@ -521,9 +515,11 @@ exec 选项:
   --check               update 只比对不写
 
 环境变量:
-  OPENMCP_GATEWAY_URL   网关地址（默认 http://127.0.0.1:3001）
-  OPENMCP_GATEWAY_KEY   网关 API Key（对应服务端 GATEWAY_API_KEY）
-  OPENMCP_GATEWAY_REPO  self-update 用的 git 仓库地址
+  OPENMCP_GATEWAY_URL          网关地址（默认 http://127.0.0.1:3001）
+  OPENMCP_GATEWAY_KEY          网关 API Key（对应服务端 GATEWAY_API_KEY）
+  OPENMCP_GATEWAY_REPO         self-update 用的 git 仓库地址
+  OPENMCP_GATEWAY_SKILLS_DIR   skill 安装根目录（默认 ~/.zcode/skills；cc-switch 用户设 ~/.cc-switch/skills）
+                               install-skill 装到这里，update 只扫这一处
 
 退出码:
   0 成功 / 1 用法错误 / 2 参数校验失败 / 3 需确认(高风险)
