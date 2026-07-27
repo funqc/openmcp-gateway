@@ -50,31 +50,31 @@ gateway-cli search "标记已看" --service emby    # 限定在某服务内检�
 gateway-cli exec <operation_id> [--param key=value]... [--confirm] [--json]
 ```
 
-**`--param key=value`**：业务参数（path / query / header / body 合并）。值默认是字符串，但会自动按 JSON 解析——数字、布尔、对象、数组都能传：
+**`--param key=value`**：业务参数（path / query / header / body 合并）。值默认是字符串，但会自动按 JSON 解析——数字、布尔、对象、数组都能传。`<operation_id>` 一律先用 `search` 查到真实值再代入（每个服务/接口的 id 不同，不要照抄示例）：
 
 ```bash
-# 无参 GET
-gateway-cli exec listFiles
+# 无参 GET（用 search 查到的真实 operation_id）
+gateway-cli exec <operation_id>
 
 # 字符串参数
-gateway-cli exec searchMedia --param query="进击的巨人"
+gateway-cli exec <operation_id> --param query="进击的巨人"
 
 # 数字 + 对象参数（注意 shell 引号）
-gateway-cli exec createFile --param name=hi.txt --param 'body={"hello":"world"}'
-gateway-cli exec setProgress --param bookId=42 --param page=120
+gateway-cli exec <operation_id> --param bookId=42 --param page=120
+gateway-cli exec <operation_id> --param 'body={"hello":"world"}'
 ```
 
 **`--confirm`**：elevated / dangerous（高风险）操作必须显式确认。不带 `--confirm` 调高风险操作会返回**退出码 3** + `confirmation_required`，提示你确认后重带 `--confirm` 再调：
 
 ```bash
-gateway-cli exec deleteFile --param fileId=f-3        # → 退出码 3，需确认
-gateway-cli exec deleteFile --param fileId=f-3 --confirm   # → 真正执行
+gateway-cli exec <operation_id> --param k=v            # 高风险 → 退出码 3，需确认
+gateway-cli exec <operation_id> --param k=v --confirm  # 确认后真正执行
 ```
 
 **`--json`**：输出原始 JSON，方便脚本 `jq` 解析（适用于所有命令）：
 
 ```bash
-gateway-cli exec listFiles --json | jq '.data'
+gateway-cli exec <operation_id> --json | jq '.data'
 ```
 
 ## 退出码（脚本据此判断成败）
@@ -91,9 +91,9 @@ gateway-cli exec listFiles --json | jq '.data'
 | 7 | 网络错误（网关不可达） |
 
 ```bash
-gateway-cli exec deleteFile --param fileId=f-3
+gateway-cli exec <operation_id> --param k=v
 case $? in
-  0)   echo "已删除" ;;
+  0)   echo "成功" ;;
   3)   echo "高风险，需 --confirm" ;;
   6|7) echo "失败，稍后重试" ;;
 esac

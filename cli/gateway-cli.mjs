@@ -518,11 +518,13 @@ exec 选项:
   0 成功 / 1 用法错误 / 2 参数校验失败 / 3 需确认(高风险)
   4 被拒绝 / 5 未找到 / 6 上游错误 / 7 网络错误
 
-示例:
-  gateway-cli search "搜索漫画"
-  gateway-cli exec listFiles
-  gateway-cli exec createFile --param name=hi.txt --param 'body={"a":1}'
-  gateway-cli exec deleteFile --param fileId=f-3 --confirm
+示例（先 search 找到真实 operation_id，再 exec）:
+  gateway-cli services                              # 看有哪些服务
+  gateway-cli search "搜索漫画"                     # 检索，从结果里拿 operation_id
+  gateway-cli exec <operation_id>                   # 无参执行
+  gateway-cli exec <operation_id> --param k=v       # 传参（值自动按 JSON 解析）
+  gateway-cli exec <operation_id> --confirm         # 高风险操作需显式确认
+  gateway-cli exec <operation_id> --json | jq '.data'   # 脚本友好输出
 `);
 }
 

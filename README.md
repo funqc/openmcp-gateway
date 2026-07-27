@@ -118,7 +118,7 @@ curl -s -X POST http://127.0.0.1:3001/mcp \
 curl -s -X POST http://127.0.0.1:3001/mcp \
   -H 'content-type: application/json' -H 'accept: application/json, text/event-stream' \
   -H "mcp-session-id: $SID" \
-  -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"execute_api","arguments":{"operation_id":"listFiles","params":{"limit":5}}}}'
+  -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"execute_api","arguments":{"operation_id":"<operation_id>","params":{"limit":5}}}}'
 ```
 
 ## CLI 通路（脚本/终端直调）
@@ -184,18 +184,18 @@ Body:   { "params": { ... }, "confirm": true|false }
 ### 示例
 
 ```bash
-# Shell：单条调用
-curl -X POST http://127.0.0.1:3001/exec/listFiles \
+# Shell：单条调用（<operation_id> 用 search 查到的真实 id）
+curl -X POST http://127.0.0.1:3001/exec/<operation_id> \
      -H "X-API-Key: $GATEWAY_API_KEY" \
      -d '{"params":{"limit":10}}'
 
 # 危险操作必须显式授权，否则返回 412 不执行
-curl -X POST http://127.0.0.1:3001/exec/deleteFile \
+curl -X POST http://127.0.0.1:3001/exec/<operation_id> \
      -H "X-API-Key: $GATEWAY_API_KEY" \
-     -d '{"params":{"fileId":"f-1"}}'                    # → 412 Precondition Failed
-curl -X POST http://127.0.0.1:3001/exec/deleteFile \
+     -d '{"params":{"id":"f-1"}}'                       # → 412 Precondition Failed
+curl -X POST http://127.0.0.1:3001/exec/<operation_id> \
      -H "X-API-Key: $GATEWAY_API_KEY" \
-     -d '{"params":{"fileId":"f-1"},"confirm":true}'     # → 200 OK
+     -d '{"params":{"id":"f-1"},"confirm":true}'        # → 200 OK
 ```
 
 ```python
