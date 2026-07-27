@@ -22,9 +22,16 @@ async function main(): Promise<void> {
 
   const app = createApp();
   const httpServer = app.listen(config.port, config.host, () => {
-    console.log(`[openmcp-gateway] MCP endpoint:  http://${config.host}:${config.port}/mcp`);
-    console.log(`[openmcp-gateway] exec (REST):   http://${config.host}:${config.port}/exec/<operation_id>`);
-    console.log(`[openmcp-gateway] health:        http://${config.host}:${config.port}/health`);
+    const base = `http://${config.host}:${config.port}`;
+    console.log(`[openmcp-gateway] 已启动，对外提供两条独立通路：`);
+    console.log(`[openmcp-gateway]   • MCP  通路：  ${base}/mcp                        （search_api + execute_api 工具）`);
+    console.log(`[openmcp-gateway]   • CLI  通路（REST，与 MCP 共用同一 API Key）：`);
+    console.log(`[openmcp-gateway]       GET  ${base}/search?q=<自然语言>      语义检索`);
+    console.log(`[openmcp-gateway]       GET  ${base}/services                   服务清单`);
+    console.log(`[openmcp-gateway]       GET  ${base}/ops?service_id=<id>        operation 清单`);
+    console.log(`[openmcp-gateway]       POST ${base}/exec/<operation_id>        执行 operation`);
+    console.log(`[openmcp-gateway]       GET  ${base}/audit?limit=N              最近 N 条审计`);
+    console.log(`[openmcp-gateway]   health：${base}/health`);
     console.log(`[openmcp-gateway] search backend: ${config.searchProvider}`);
     if (config.gatewayApiKey) {
       console.log(`[openmcp-gateway] 访问鉴权:      已启用（API Key）`);
