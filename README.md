@@ -89,12 +89,12 @@ npm run ping -- emby      # 只测指定服务（可带多个 id）
 
 ```
 ▌ emby  [openapi]
-  source:  https://emby.<YOUR_DOMAIN>:18443/openapi
-  baseUrl: https://emby.<YOUR_DOMAIN>:18443
+  source:  https://192.168.1.10:18443/openapi
+  baseUrl: https://192.168.1.10:18443
   auth:    X-Emby-Token
   ✅ spec      200  1912ms  { "openapi": "3.0.1", ... }
   ✅ business  200  20ms    {"ServerName":"Remote","Version":"4.9.5.0",...}
-           ↳ https://emby.<YOUR_DOMAIN>:18443/System/Info/Public
+           ↳ https://192.168.1.10:18443/System/Info/Public
 ```
 
 > 💡 business 探测的健康端点按 hostname 兜底（emby/jellyfin → `/System/Info/Public`、seerr → `/status`、其它 → `/health`）。端点选错导致的 404 不代表服务不可用——只要 spec 探测通过,网关注册就不会受影响。
