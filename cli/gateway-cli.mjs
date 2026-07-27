@@ -429,18 +429,18 @@ function cmdUpdate(args) {
   writeFileSync(cliPath, cliText);
   println(`✓ 已更新 CLI：${cliPath}`);
 
-  // 5) 拉最新 skill，直接覆盖仓库源 + 所有已安装的副本，一键同步到位。
+  // 5) 拉最新 skill，直接覆盖所有已安装的副本，一键同步到位。
+  //    注意：仓库源（skills/openmcp-gateway/SKILL.md）不在此列——它是 git 跟踪
+  //    文件，跟着 git 版本走；update 去写它只会制造本地未提交修改，与 git 冲突。
   const skillText = fetchSync(skillUrl);
   if (skillText) {
-    const repo = findRepoRoot();
-    // 所有可能装了本 skill 的位置：仓库源 + 各 Agent 的 skills 目录。
+    // 只扫描各 Agent 的 skills 安装目录（不含仓库源）。
     const home = homedir();
     const skillCandidates = [
-      repo ? join(repo, "skills", "openmcp-gateway", "SKILL.md") : null,
       join(home, ".zcode", "skills", "openmcp-gateway", "SKILL.md"),
       join(home, ".cc-switch", "skills", "openmcp-gateway", "SKILL.md"),
       join(home, ".claude", "skills", "openmcp-gateway", "SKILL.md"),
-    ].filter(Boolean);
+    ];
 
     // 只覆盖已存在的副本——不主动创建用户没在用的 Agent 目录。
     const installed = skillCandidates.filter((p) => existsSync(p));
