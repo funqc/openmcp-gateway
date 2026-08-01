@@ -13,6 +13,8 @@ data/*-registry.db-wal
 data/*-registry.db-shm
 data/services.yaml
 data/policy.json
+# 服务定义目录（导入/注册时生成，真实地址不入库）
+data/services/
 
 # 凭据
 .env
