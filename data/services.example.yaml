@@ -8,8 +8,10 @@
 #
 # 某些服务（如海外 API）需要走 HTTP 代理才能访问时，给该服务加 proxy 字段：
 #   proxy: http://127.0.0.1:7890
-# 设置后，执行 operation、拉取 spec、GraphQL introspection 三处对该服务的
-# 所有请求都经此代理。未设置 proxy 的服务走直连。仅支持 http:// / https:// 代理。
+# 设置后，只有【运行时执行 operation】（调该服务的真实 API）会经此代理；
+# 拉取 OpenAPI spec / GraphQL introspection 仍走直连——因为 spec 源与 API
+# 常不在同一个域（如 spec 在 github.io、API 在 api.bgm.tv），代理对 spec 源
+# 的 HTTPS 不一定通。仅支持 http:// / https:// 代理。
 # =============================================================================
 
 services:

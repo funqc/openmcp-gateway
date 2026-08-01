@@ -154,10 +154,10 @@ async function pingOne(svc: ServiceDescriptor): Promise<boolean> {
 
   let allOk = true;
 
-  // ① spec 可达性
+  // ① spec 可达性 —— 永远直连（spec 源与 API 常不同域，且 proxy 留给运行时 execute）
   const specProbe = isGraphql
-    ? await probeGraphql(svc.source, auth, proxy)
-    : await probe(svc.source, {}, proxy);
+    ? await probeGraphql(svc.source, auth)
+    : await probe(svc.source, {});
   console.log(`  ${mark(specProbe)} spec      ${specProbe.status ?? "--"}  ${specProbe.durationMs}ms  ${specProbe.detail}`);
   if (!specProbe.ok) allOk = false;
 

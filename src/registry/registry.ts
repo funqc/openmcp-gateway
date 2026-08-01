@@ -58,7 +58,9 @@ interface Ingested {
 
 /** OpenAPI path: load → validate/dereference → extract operations. */
 async function ingestOpenapi(opts: RegisterOptions): Promise<Ingested> {
-  const loaded = await loadSpec(opts.source, opts.proxyUrl);
+  // Spec is fetched direct (no proxy): proxy is reserved for runtime execution
+  // against the service's real API, and the spec often lives on a different host.
+  const loaded = await loadSpec(opts.source);
   const hash = sha256(loaded.raw);
   const parsed = await parseAndValidate(loaded.raw, loaded.absoluteRef);
   const extraction = extractOperations(opts.serviceId, parsed.doc, opts.riskOverrides);
