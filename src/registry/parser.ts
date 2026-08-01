@@ -9,6 +9,7 @@
  * The bundled result's `.bundle.parsed` is the dereferenced document.
  */
 import { readFileSync } from "node:fs";
+import { request } from "undici";
 import {
   bundleFromString,
   createConfig,
@@ -17,6 +18,7 @@ import {
   type Document,
   type Config,
 } from "@redocly/openapi-core";
+import { getDispatcher } from "../execute/dispatcher.js";
 
 export interface ParsedSpec {
   /** Dereferenced OpenAPI document (no $ref). */
@@ -32,15 +34,29 @@ async function getConfig(): Promise<Config> {
   return _config;
 }
 
-/** Load a raw OpenAPI document from a file path, URL, or inline object. */
-export async function loadSpec(source: string | object): Promise<{ raw: string; absoluteRef: string }> {
+/**
+ * Load a raw OpenAPI document from a file path, URL, or inline object.
+ * When the source is an http(s) URL, `proxyUrl` (if given) routes the fetch
+ * through a cached ProxyAgent — matching how runtime execution reaches the
+ * same upstream.
+ */
+export async function loadSpec(
+  source: string | object,
+  proxyUrl?: string,
+): Promise<{ raw: string; absoluteRef: string }> {
   if (typeof source !== "string") {
     return { raw: JSON.stringify(source), absoluteRef: "inline.json" };
   }
   if (/^https?:\/\//i.test(source)) {
-    const res = await fetch(source, { headers: { accept: "application/json, application/yaml, */*" } });
-    if (!res.ok) throw new Error(`Failed to fetch OpenAPI from ${source}: ${res.status}`);
-    return { raw: await res.text(), absoluteRef: source };
+    const res = await request(source, {
+      method: "GET",
+      headers: { accept: "application/json, application/yaml, */*" },
+      dispatcher: getDispatcher(proxyUrl),
+    });
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw new Error(`Failed to fetch OpenAPI from ${source}: ${res.statusCode}`);
+    }
+    return { raw: await res.body.text(), absoluteRef: source };
   }
   return { raw: readFileSync(source, "utf8"), absoluteRef: source };
 }

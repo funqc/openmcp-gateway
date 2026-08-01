@@ -15,6 +15,11 @@ export interface ServiceRecord {
   registeredAt: number;
   /** operation 提取逻辑版本号（见 OPERATION_SCHEMA_VERSION）。用于强制存量升级。 */
   schemaVersion: number;
+  /**
+   * 该服务访问上游时走的 http(s) 代理 URL，空串表示直连。
+   * 来自 services.yaml 的 proxy 字段，执行/拉spec/introspection 三处共用。
+   */
+  proxyUrl: string;
 }
 
 /** A single OpenAPI operation, fully resolved ($ref-free). */

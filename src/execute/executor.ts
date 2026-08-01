@@ -10,7 +10,7 @@
  *   6. Invoke upstream via undici (shared Agent)
  *   7. Mask response + write audit row + return
  */
-import { request, Agent } from "undici";
+import { request } from "undici";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { OperationRecord } from "../types.js";
 import * as store from "../store/operation-store.js";
@@ -22,12 +22,7 @@ import { requestConfirmation } from "../governance/confirm.js";
 import { mask } from "../governance/masker.js";
 import { logAudit, type AuditOutcome } from "../governance/audit.js";
 import type { ExecuteOutput } from "../schemas/execute.js";
-
-// Shared connection pool for all upstream calls.
-const agent = new Agent({
-  keepAliveTimeout: 30_000,
-  keepAliveMaxTimeout: 60_000,
-});
+import { getDispatcher } from "./dispatcher.js";
 
 export interface ExecuteContext {
   sessionId: string | null;
@@ -125,7 +120,7 @@ export async function execute(
       method: built.method,
       headers: built.headers,
       body: built.body,
-      dispatcher: agent,
+      dispatcher: getDispatcher(service.proxyUrl),
     });
     statusCode = res.statusCode;
     const text = await res.body.text();

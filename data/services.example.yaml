@@ -5,6 +5,11 @@
 # 启动时网关会逐个拉取 source 指向的 OpenAPI 文档、校验、解引用、建索引。
 #
 # 认证凭据【不要】写在这里——用 .env 的 AUTH_<ID>_SCHEME / AUTH_<ID>_VALUE。
+#
+# 某些服务（如海外 API）需要走 HTTP 代理才能访问时，给该服务加 proxy 字段：
+#   proxy: http://127.0.0.1:7890
+# 设置后，执行 operation、拉取 spec、GraphQL introspection 三处对该服务的
+# 所有请求都经此代理。未设置 proxy 的服务走直连。仅支持 http:// / https:// 代理。
 # =============================================================================
 
 services:
@@ -19,6 +24,8 @@ services:
   # ---- 示例 2：照片服务 ----
   - id: photos
     source: https://nas-2.local:8443/api/openapi.json
+    # 可选：该服务需要走 http(s) 代理才能访问时（如海外 API）：
+    # proxy: http://127.0.0.1:7890
 
   # ---- 示例 3：下载服务（spec 是本地文件）----
   - id: downloads

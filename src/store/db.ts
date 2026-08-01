@@ -21,7 +21,9 @@ CREATE TABLE IF NOT EXISTS services (
   registered_at INTEGER NOT NULL,
   -- operation 提取逻辑版本号。提取逻辑变了（如本次加 service 前缀）就 bump，
   -- 即使 spec hash 未变也强制重新提取，保证 DB 里的 operation 与最新逻辑一致。
-  schema_version INTEGER NOT NULL DEFAULT 0
+  schema_version INTEGER NOT NULL DEFAULT 0,
+  -- 该服务访问上游走的 http(s) 代理 URL，空串=直连。
+  proxy_url     TEXT NOT NULL DEFAULT ''
 );
 
 CREATE TABLE IF NOT EXISTS operations (
@@ -88,6 +90,11 @@ export function getDb(): Database.Database {
   const svcCols = conn.prepare("PRAGMA table_info(services)").all() as { name: string }[];
   if (!svcCols.some((c) => c.name === "schema_version")) {
     conn.exec("ALTER TABLE services ADD COLUMN schema_version INTEGER NOT NULL DEFAULT 0");
+  }
+  // proxy_url on services: per-service http(s) proxy for upstream access.
+  // Empty string = direct connection (the default for pre-existing rows).
+  if (!svcCols.some((c) => c.name === "proxy_url")) {
+    conn.exec("ALTER TABLE services ADD COLUMN proxy_url TEXT NOT NULL DEFAULT ''");
   }
   _db = conn;
   return conn;

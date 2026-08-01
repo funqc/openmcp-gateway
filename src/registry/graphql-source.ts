@@ -15,9 +15,11 @@
  * generated as plain text (we never parse user-supplied GraphQL).
  */
 import { createHash } from "node:crypto";
+import { request } from "undici";
 import type { HttpMethod, OperationRecord, RiskLevel } from "../types.js";
 import type { ServiceAuthConfig } from "../config.js";
 import { classifyRisk } from "./risk-classifier.js";
+import { getDispatcher } from "../execute/dispatcher.js";
 
 /**
  * Convert a ServiceAuthConfig (from env AUTH_<ID>_*) into the headers a
@@ -152,6 +154,8 @@ export interface GraphqlSourceOptions {
   authHeaders: Record<string, string>;
   /** Per-operationId risk overrides (same semantics as the OpenAPI path). */
   riskOverrides?: Record<string, "safe" | "elevated" | "dangerous">;
+  /** Optional http(s) proxy for the introspection (and matched runtime) calls. */
+  proxyUrl?: string;
 }
 
 /**
@@ -160,7 +164,7 @@ export interface GraphqlSourceOptions {
  * the endpoint is unreachable.
  */
 export async function ingestGraphql(opts: GraphqlSourceOptions): Promise<GraphqlSourceResult> {
-  const schema = await introspect(opts.endpoint, opts.authHeaders);
+  const schema = await introspect(opts.endpoint, opts.authHeaders, opts.proxyUrl);
 
   // Hash the canonicalized schema so unchanged schemas short-circuit re-registration.
   const hash = sha256(JSON.stringify(schema));
@@ -453,36 +457,44 @@ function sampleFor(sch: Record<string, unknown> | undefined): unknown {
 
 // ---- introspection transport ----
 
-async function introspect(endpoint: string, authHeaders: Record<string, string>): Promise<IntroSchema> {
-  let res: Response;
+async function introspect(
+  endpoint: string,
+  authHeaders: Record<string, string>,
+  proxyUrl?: string,
+): Promise<IntroSchema> {
+  let statusCode: number;
+  let bodyText: string;
   try {
-    res = await fetch(endpoint, {
+    const res = await request(endpoint, {
       method: "POST",
       headers: { "content-type": "application/json", accept: "application/json", ...authHeaders },
       body: JSON.stringify({ query: INTROSPECTION_QUERY }),
+      dispatcher: getDispatcher(proxyUrl),
     });
+    statusCode = res.statusCode;
+    bodyText = await res.body.text();
   } catch (err) {
     throw new Error(`GraphQL introspection failed (cannot reach ${endpoint}): ${(err as Error).message}`);
   }
-  if (!res.ok) {
+  if (statusCode < 200 || statusCode >= 300) {
     // Surface the upstream body so the cause is visible (e.g. Unraid returns
     // INTROSPECTION_DISABLED with a 400 — without the body the user only sees
     // a bare status code and has to guess).
-    let detail = "";
-    try {
-      detail = (await res.text()).trim().slice(0, 300);
-    } catch {
-      /* ignore */
-    }
+    const detail = bodyText.trim().slice(0, 300);
     const hint =
       /INTROSPECTION_DISABLED/i.test(detail)
         ? " Introspection is disabled on this server. For Unraid, enable developer mode: run `unraid-api developer --sandbox true` on the server (or Settings → Management Access → Developer Options), then restart the gateway."
         : "";
     throw new Error(
-      `GraphQL introspection failed: ${endpoint} returned HTTP ${res.status}.${detail ? ` Body: ${detail}` : ""}${hint}`,
+      `GraphQL introspection failed: ${endpoint} returned HTTP ${statusCode}.${detail ? ` Body: ${detail}` : ""}${hint}`,
     );
   }
-  const payload = (await res.json()) as { data?: { __schema?: IntroSchema }; errors?: { message: string }[] };
+  let payload: { data?: { __schema?: IntroSchema }; errors?: { message: string }[] };
+  try {
+    payload = JSON.parse(bodyText);
+  } catch {
+    throw new Error(`GraphQL introspection failed: ${endpoint} returned non-JSON response.`);
+  }
   if (payload.errors?.length) {
     throw new Error(`GraphQL introspection returned errors: ${payload.errors.map((e) => e.message).join("; ")}`);
   }

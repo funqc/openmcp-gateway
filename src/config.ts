@@ -40,6 +40,12 @@ export interface ServiceDescriptor {
   enabled?: boolean;
   /** 可选：服务类型。"openapi"（默认）或 "graphql"。 */
   type?: "openapi" | "graphql";
+  /**
+   * 可选：该服务访问上游时走的 http(s) 代理 URL，如 "http://127.0.0.1:7890"。
+   * 设置后，执行 operation、拉取 spec、GraphQL introspection 三处对该
+   * 服务的所有请求都经此代理。未设置则直连。
+   */
+  proxy?: string;
 }
 
 export interface Config {
@@ -167,6 +173,11 @@ export function loadServiceDescriptors(): { descriptors: ServiceDescriptor[]; ex
     if (!s?.id || !s?.source) {
       console.warn(`[config] 跳过无效服务声明（缺 id 或 source）: ${JSON.stringify(s)}`);
       return false;
+    }
+    // 校验 proxy：必须是 http(s)://，否则忽略并降级为直连（不阻断启动）。
+    if (s.proxy !== undefined && s.proxy !== "" && !/^https?:\/\//i.test(s.proxy)) {
+      console.warn(`[config] 服务 "${s.id}" 的 proxy 不是 http(s) URL，已忽略: ${s.proxy}`);
+      s.proxy = undefined;
     }
     return s.enabled !== false;
   });

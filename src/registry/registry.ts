@@ -31,6 +31,11 @@ export interface RegisterOptions {
    * "graphql" introspects a GraphQL endpoint instead.
    */
   type?: "openapi" | "graphql";
+  /**
+   * Optional http(s) proxy URL for all upstream access to this service
+   * (execute, spec fetch, introspection). Empty/undefined = direct.
+   */
+  proxyUrl?: string;
 }
 
 export interface RegisterResult {
@@ -53,7 +58,7 @@ interface Ingested {
 
 /** OpenAPI path: load → validate/dereference → extract operations. */
 async function ingestOpenapi(opts: RegisterOptions): Promise<Ingested> {
-  const loaded = await loadSpec(opts.source);
+  const loaded = await loadSpec(opts.source, opts.proxyUrl);
   const hash = sha256(loaded.raw);
   const parsed = await parseAndValidate(loaded.raw, loaded.absoluteRef);
   const extraction = extractOperations(opts.serviceId, parsed.doc, opts.riskOverrides);
@@ -71,6 +76,7 @@ async function ingestOpenapi(opts: RegisterOptions): Promise<Ingested> {
       authScheme: auth.scheme,
       registeredAt: Date.now(),
       schemaVersion: OPERATION_SCHEMA_VERSION,
+      proxyUrl: opts.proxyUrl ?? "",
     },
   };
 }
@@ -89,6 +95,7 @@ async function ingestGraphQL(opts: RegisterOptions): Promise<Ingested> {
     endpoint: opts.source,
     authHeaders,
     riskOverrides: opts.riskOverrides,
+    proxyUrl: opts.proxyUrl,
   });
   // GraphQL 的 baseUrl：显式优先，否则从 endpoint 推断（去掉 /graphql 后缀）。
   const baseUrl = opts.baseUrl ?? graphqlEndpointToBase(opts.source);
@@ -104,6 +111,7 @@ async function ingestGraphQL(opts: RegisterOptions): Promise<Ingested> {
       authScheme: auth.scheme,
       registeredAt: Date.now(),
       schemaVersion: OPERATION_SCHEMA_VERSION,
+      proxyUrl: opts.proxyUrl ?? "",
     },
   };
 }
@@ -178,9 +186,9 @@ export class Registry {
     const declaredIds = new Set(descriptors.map((d) => d.id));
     const results: RegisterResult[] = [];
 
-    for (const { id, source, baseUrl, type } of descriptors) {
+    for (const { id, source, baseUrl, type, proxy } of descriptors) {
       try {
-        const r = await this.register({ serviceId: id, source, baseUrl, type });
+        const r = await this.register({ serviceId: id, source, baseUrl, type, proxyUrl: proxy });
         results.push(r);
         logAudit({
           ts: Date.now(),

@@ -15,17 +15,37 @@
  *   ② 业务可达性  —— 带认证请求一个轻量 GET（OpenAPI）或 GraphQL ping
  *   ③ 认证有效性  —— ②的响应里是否出现 401/403
  */
-import { Agent, request } from "undici";
+import { Agent, ProxyAgent, request, type Dispatcher } from "undici";
 import { loadServiceDescriptors, getAuthForService, type ServiceDescriptor } from "../src/config.js";
 
 const TIMEOUT_MS = 10_000;
 
-/** 共享连接池，跟 executor 保持一致的姿态。 */
-const agent = new Agent({
+/** 共享直连连接池，跟 executor 保持一致的姿态。 */
+const directAgent = new Agent({
   connect: { timeout: TIMEOUT_MS },
   headersTimeout: TIMEOUT_MS,
   bodyTimeout: TIMEOUT_MS,
 });
+
+// 缓存 ProxyAgent（每个代理 URL 一个），与运行时 dispatcher.ts 同策略，
+// 但此处额外带上超时，便于诊断时快速失败。
+const proxyCache = new Map<string, ProxyAgent>();
+
+/** 按 proxyUrl 选 dispatcher：空→直连池，否则带超时的 ProxyAgent。 */
+function dispatcherFor(proxyUrl?: string): Dispatcher {
+  if (!proxyUrl) return directAgent;
+  let pa = proxyCache.get(proxyUrl);
+  if (!pa) {
+    pa = new ProxyAgent({
+      uri: proxyUrl,
+      connect: { timeout: TIMEOUT_MS },
+      headersTimeout: TIMEOUT_MS,
+      bodyTimeout: TIMEOUT_MS,
+    });
+    proxyCache.set(proxyUrl, pa);
+  }
+  return pa;
+}
 
 interface ProbeResult {
   ok: boolean;
@@ -34,10 +54,10 @@ interface ProbeResult {
   detail: string;
 }
 
-async function probe(url: string, headers: Record<string, string>): Promise<ProbeResult> {
+async function probe(url: string, headers: Record<string, string>, proxyUrl?: string): Promise<ProbeResult> {
   const t0 = Date.now();
   try {
-    const res = await request(url, { method: "GET", headers, dispatcher: agent });
+    const res = await request(url, { method: "GET", headers, dispatcher: dispatcherFor(proxyUrl) });
     const text = await res.body.text().catch(() => "");
     const durationMs = Date.now() - t0;
     const ok = res.statusCode >= 200 && res.statusCode < 300;
@@ -56,7 +76,8 @@ async function probe(url: string, headers: Record<string, string>): Promise<Prob
 
 async function probeGraphql(
   url: string,
-  headers: Record<string, string>
+  headers: Record<string, string>,
+  proxyUrl?: string,
 ): Promise<ProbeResult> {
   // GraphQL：发一个 introspection 的 __typename 查询，既验证端点可达又验证认证
   const query = "{ __schema { queryType { name } } }";
@@ -66,7 +87,7 @@ async function probeGraphql(
       method: "POST",
       headers: { "content-type": "application/json", ...headers },
       body: JSON.stringify({ query }),
-      dispatcher: agent,
+      dispatcher: dispatcherFor(proxyUrl),
     });
     const text = await res.body.text().catch(() => "");
     const durationMs = Date.now() - t0;
@@ -122,25 +143,28 @@ async function pingOne(svc: ServiceDescriptor): Promise<boolean> {
   const auth = authHeaders(svc.id);
   const authLabel =
     Object.keys(auth).length > 0 ? Object.keys(auth).join(",") : "(无认证)";
+  const proxy = svc.proxy;
+  const proxyLabel = proxy ? proxy : "(直连)";
 
   console.log(`\n▌ ${svc.id}  [${isGraphql ? "graphql" : "openapi"}]`);
   console.log(`  source:  ${svc.source}`);
   console.log(`  baseUrl: ${svc.baseUrl ?? "(取自 spec)"}`);
+  console.log(`  proxy:   ${proxyLabel}`);
   console.log(`  auth:    ${authLabel}`);
 
   let allOk = true;
 
   // ① spec 可达性
   const specProbe = isGraphql
-    ? await probeGraphql(svc.source, auth)
-    : await probe(svc.source, {});
+    ? await probeGraphql(svc.source, auth, proxy)
+    : await probe(svc.source, {}, proxy);
   console.log(`  ${mark(specProbe)} spec      ${specProbe.status ?? "--"}  ${specProbe.durationMs}ms  ${specProbe.detail}`);
   if (!specProbe.ok) allOk = false;
 
   // ② 业务可达性（OpenAPI 服务才做：带认证 ping 一个轻量 GET）
   if (!isGraphql && svc.baseUrl) {
     const health = `${svc.baseUrl.replace(/\/$/, "")}${pickHealthPath(svc.baseUrl)}`;
-    const biz = await probe(health, auth);
+    const biz = await probe(health, auth, proxy);
     console.log(`  ${mark(biz)} business  ${biz.status ?? "--"}  ${biz.durationMs}ms  ${biz.detail}`);
     console.log(`           ↳ ${health}`);
     if (!biz.ok) allOk = false;
@@ -176,7 +200,8 @@ async function main() {
   }
 
   console.log(`\n—— ${pass}/${targets.length} 个服务全部探测通过 ——`);
-  await agent.close();
+  await directAgent.close();
+  for (const pa of proxyCache.values()) await pa.close();
   process.exit(pass === targets.length ? 0 : 1);
 }
 
