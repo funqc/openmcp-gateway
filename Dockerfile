@@ -8,6 +8,9 @@
 # ---- 阶段 1：构建 ----
 FROM node:22-slim AS build
 
+# 国内镜像加速：Debian apt 源（bookworm 的 debian + debian-security）换成阿里云镜像
+RUN sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list.d/debian.sources
+
 # better-sqlite3 编译需要 python + make + g++
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 make g++ \
@@ -19,10 +22,12 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 
 # 安装全部依赖（含 devDependencies，用于 tsc 编译）。
+# 国内镜像加速：npm 走 npmmirror（淘宝）源。
 # better-sqlite3 v13 的预编译二进制要求 GLIBC 2.38，但 Debian 12 只有 2.36，
 # 必须从源码编译。npm_config_build_from_source 对 v13 不生效，
 # 改为：安装后删除 prebuilds 目录，强制 rebuild 触发 node-gyp 本地编译。
-RUN npm ci \
+RUN npm config set registry https://registry.npmmirror.com \
+    && npm ci \
     && rm -rf node_modules/better-sqlite3/prebuilds \
     && npm rebuild better-sqlite3 --build-from-source
 
