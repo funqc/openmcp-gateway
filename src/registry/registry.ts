@@ -136,13 +136,16 @@ export class Registry {
 
     const { hash, operations, service } = ingested;
 
-    // 去重：哈希未变、baseUrl 未变、且提取逻辑版本号也不低于当前值时才跳过。
-    // schemaVersion 变了（如本次加 service 前缀）即使 spec hash 相同也强制重提，
-    // 保证存量 DB 升级到最新提取逻辑。
+    // 去重：哈希未变、baseUrl 未变、proxyUrl 未变、且提取逻辑版本号也不低于
+    // 当前值时才跳过。schemaVersion 变了（如本次加 service 前缀）即使 spec hash
+    // 相同也强制重提，保证存量 DB 升级到最新提取逻辑。
+    // proxyUrl 纳入比较：改了 services.yaml 的 proxy 后，重启就能更新到 DB
+    // （否则 execute 会用老的空 proxyUrl 直连，该走代理的服务会超时）。
     const existing = store.getService(opts.serviceId);
     const baseUrlUnchanged = !service.baseUrl || existing?.baseUrl === service.baseUrl;
+    const proxyUrlUnchanged = existing?.proxyUrl === service.proxyUrl;
     const schemaUpToDate = !existing || existing.schemaVersion >= OPERATION_SCHEMA_VERSION;
-    if (existing && existing.specHash === hash && baseUrlUnchanged && schemaUpToDate) {
+    if (existing && existing.specHash === hash && baseUrlUnchanged && proxyUrlUnchanged && schemaUpToDate) {
       return { serviceId: opts.serviceId, inserted: 0, skipped: true, hash };
     }
 
