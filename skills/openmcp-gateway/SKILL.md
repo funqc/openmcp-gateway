@@ -7,6 +7,16 @@ description: 通过 gateway-cli 命令行脚本化直调已注册的 NAS / 后�
 
 本网关把所有后端服务的 OpenAPI 文档注册到一个统一目录，对外只暴露「先检索、再执行」两个动作。本 skill 教你怎么用 `gateway-cli` 命令行完成这两个动作，从而脚本化、可固化、零 token 地调用任意已注册服务。
 
+## ⚠️ 铁律：必须通过网关
+
+**所有 API 调用必须经过 `gateway-cli`，禁止直接调用服务 API（curl、HTTP 请求等）。**
+
+- ✅ `gateway-cli exec <operation_id> --param key=value --json`
+- ❌ `curl -H "X-Api-Key: ..." https://xxx.<YOUR_DOMAIN>:18443/api/...`
+- ❌ 任何绕过网关的直接 HTTP 调用
+
+**理由**：网关统一管理认证、审计、限流、参数校验。直接调用绕过这些能力，审计日志缺失、凭证泄露风险增加。
+
 ## 前置条件
 
 1. 网关已启动（默认 `http://127.0.0.1:3001`）。

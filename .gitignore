@@ -22,3 +22,5 @@ data/services/
 
 # Editor
 .zcode/
+.codex/
+.claude/
