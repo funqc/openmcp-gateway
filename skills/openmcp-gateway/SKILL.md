@@ -46,6 +46,8 @@ gateway-cli search "标记已看" --service emby    # 限定在某服务内检�
 
 > **关于 operation_id 格式**：每个 id 自动带服务前缀（如 `filesystem_list_files_...`、`seerr_get__discover_trending`），保证跨服务全局唯一。`exec` 时直接用 `search` 返回的完整 id，不要手动拼接或截断。
 
+> **优先用 `ops` 列全量，再用 `search` 补位**：当你已知要操作哪个服务时，`gateway-cli ops <service>` 会返回该服务**全部** operation 的完整清单（id / 方法 / 路径 / 风险 / 必填参数），比 `search` 的语义检索更全、更准——`search` 靠关键词匹配，可能漏掉命名不直观的接口。建议先 `ops <service>` 通览全貌、锁定目标，只有在不清楚该用哪个服务 / 不知道接口叫什么时才退回 `search`。
+
 ### 步骤 2：执行
 
 ```bash
