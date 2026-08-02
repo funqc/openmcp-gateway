@@ -12,7 +12,7 @@ import { parseYaml } from "@redocly/openapi-core";
 export type SearchProvider = "bm25" | "embedding";
 
 export interface ServiceAuthConfig {
-  scheme: "bearer" | "basic" | "apikey" | "none";
+  scheme: "bearer" | "basic" | "apikey" | "session" | "none";
   value?: string; // token / "user:pass" / api-key 值
   headerName?: string; // apikey 时用哪个 header（默认 X-API-Key）
   /**
@@ -21,6 +21,17 @@ export interface ServiceAuthConfig {
    * 与认证同类管理（都影响请求 header、per-service 配置）。
    */
   headers?: Record<string, string>;
+  /**
+   * session 方案专用：登录用户名（AUTH_<ID>_USERNAME）。
+   * 网关运行时用 username/password 调 loginPath 换会话 cookie，缓存复用。
+   */
+  username?: string;
+  /** session 方案专用：登录密码（AUTH_<ID>_PASSWORD）。 */
+  password?: string;
+  /** session 方案专用：登录接口路径，拼在 baseUrl 后（AUTH_<ID>_LOGIN_PATH）。 */
+  loginPath?: string;
+  /** session 方案专用：要从 Set-Cookie 取的 cookie 名（AUTH_<ID>_COOKIE_NAME）。 */
+  cookieName?: string;
 }
 
 /** services.yaml 里每个服务的声明。 */
@@ -109,11 +120,19 @@ function loadAuth(): Record<string, ServiceAuthConfig> {
     const value = process.env[`AUTH_${serviceId}_VALUE`];
     const headerName = process.env[`AUTH_${serviceId}_HEADER`];
     const headers = parseExtraHeaders(process.env[`AUTH_${serviceId}_HEADERS`], serviceId);
+    const username = process.env[`AUTH_${serviceId}_USERNAME`];
+    const password = process.env[`AUTH_${serviceId}_PASSWORD`];
+    const loginPath = process.env[`AUTH_${serviceId}_LOGIN_PATH`];
+    const cookieName = process.env[`AUTH_${serviceId}_COOKIE_NAME`];
     out[serviceId.toLowerCase()] = {
       scheme,
       value,
       headerName: headerName || (scheme === "apikey" ? "X-API-Key" : undefined),
       headers,
+      username,
+      password,
+      loginPath,
+      cookieName,
     };
   }
   return out;

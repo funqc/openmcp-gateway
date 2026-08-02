@@ -11,7 +11,7 @@ export interface ServiceRecord {
   baseUrl: string;
   specVersion: string;
   specHash: string;
-  authScheme: "bearer" | "basic" | "apikey" | "none";
+  authScheme: "bearer" | "basic" | "apikey" | "session" | "none";
   registeredAt: number;
   /** operation 提取逻辑版本号（见 OPERATION_SCHEMA_VERSION）。用于强制存量升级。 */
   schemaVersion: number;

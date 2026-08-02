@@ -99,7 +99,12 @@ async function probeGraphql(
   }
 }
 
-/** 把 ServiceAuthConfig 解析成实际请求头（与 execute/auth.ts 同语义，但这里不依赖 ServiceRecord）。 */
+/**
+ * 把 ServiceAuthConfig 解析成实际请求头（与 execute/auth.ts 同语义，但这里不依赖 ServiceRecord）。
+ *
+ * 注意：`session` 方案（用户名/密码换 cookie）仅运行时 execute 路径支持——
+ * ping 是无状态健康探测，不登录换 cookie；session 服务在此处不注入凭据。
+ */
 function authHeaders(id: string): Record<string, string> {
   const cfg = getAuthForService(id);
   const h: Record<string, string> = {};
@@ -112,6 +117,9 @@ function authHeaders(id: string): Record<string, string> {
       break;
     case "apikey":
       if (cfg.value) h[cfg.headerName ?? "X-API-Key"] = cfg.value;
+      break;
+    case "session":
+      // ping 不做会话登录，跳过（见上方注释）。
       break;
     case "none":
     default:

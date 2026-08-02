@@ -108,7 +108,7 @@ export async function execute(
   }
 
   // 5. Build request + auth
-  const auth = resolveAuthHeaders(service);
+  const auth = await resolveAuthHeaders(service);
   const built = buildRequest(op, service.baseUrl, validation.coercedParams, validation.body, auth.headers);
 
   // 6. Invoke

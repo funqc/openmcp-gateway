@@ -21,9 +21,13 @@ import type { ServiceAuthConfig } from "../config.js";
 import { classifyRisk } from "./risk-classifier.js";
 
 /**
- * Convert a ServiceAuthConfig (from env AUTH_<ID>_*) into the headers a
+ * Convert a ServiceAuthConfig (from env AUTH_<ID>*) into the headers a
  * GraphQL introspection/execution request must carry. Mirrors the mapping in
  * execute/auth.ts so introspection and runtime calls authenticate identically.
+ *
+ * 注意：`session` 方案（用户名/密码换 cookie）仅运行时 execute 路径支持
+ * （见 execute/auth.ts，需异步登录 + 缓存）。此处用于 GraphQL introspection，
+ * 通常无需会话 cookie，故不实现；如确有需要，应内省前先登录取得 cookie。
  */
 export function authHeadersForService(auth: ServiceAuthConfig): Record<string, string> {
   const headers: Record<string, string> = {};
@@ -36,6 +40,9 @@ export function authHeadersForService(auth: ServiceAuthConfig): Record<string, s
       break;
     case "apikey":
       if (auth.value) headers[auth.headerName ?? "X-API-Key"] = auth.value;
+      break;
+    case "session":
+      // 见上方注释：session 不在此处支持。
       break;
     case "none":
     default:

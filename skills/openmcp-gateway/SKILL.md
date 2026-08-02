@@ -152,5 +152,6 @@ done
 
 - **网络错误（退出码 7）**：检查 `OPENMCP_GATEWAY_URL` 与网关是否启动（`curl $OPENMCP_GATEWAY_URL/health`）。
 - **退出码 4（denied）**：operation 被策略文件 deny，或上游返回 401/403（凭据问题，检查服务端 `AUTH_<ID>_*`）。
+- **登录类服务（qBittorrent 等，退出码 4/6）**：这类服务没有静态 token，用「用户名/密码登录换 cookie」模型。在 `.env` 配 `AUTH_<ID>_SCHEME=session` + `USERNAME`/`PASSWORD`/`LOGIN_PATH`/`COOKIE_NAME`，网关会自动登录、缓存 cookie、过期自动续期，无需手动换 SID。详见 `.env.example` 的 session 段。
 - **参数校验失败（退出码 2）**：`--json` 输出里有 `details` 列出每个字段的问题。
 - **`update` 失败**：确认 `OPENMCP_GATEWAY_REPO` 可访问、本地有 `git`、`git ls-remote` 能连上远端。
