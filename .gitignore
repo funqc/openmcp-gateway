@@ -24,4 +24,8 @@ data/services/
 .zcode/
 .codex/
 .claude/
+.hermes/
 .DS_Store
+
+# 运行时缓存
+skills/homeserver/scripts/comics/.bgm_cache.json
