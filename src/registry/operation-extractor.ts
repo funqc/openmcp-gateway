@@ -90,7 +90,6 @@ function summarizeResponse(operation: OpenApiOperation): string | undefined {
 }
 
 function makeExample(
-  serviceId: string,
   method: HttpMethod,
   path: string,
   operation: OpenApiOperation,
@@ -115,8 +114,7 @@ function makeExample(
     ? "?" + new URLSearchParams(Object.fromEntries(Object.entries(queryParams).map(([k, v]) => [k, String(v)]))).toString()
     : "";
   const bodySample = bodySchema ? sampleFor(bodySchema) : null;
-  // serviceId 仅作来源标注，用方括号括起，避免与真实 path 黏连被误读成多一层目录。
-  const lines: string[] = [`# ${method} [${serviceId}] ${resolvedPath}${qs}`];
+  const lines: string[] = [`# ${method} ${resolvedPath}${qs}`];
   lines.push(`operation_id: ${operationId}`);
   if (operation.summary) lines.push(`summary: ${operation.summary}`);
   lines.push("");
@@ -202,7 +200,6 @@ export function extractOperations(
       const risk: RiskLevel = riskOverrides?.[operationId] ??
         classifyRisk(method, path, operation.summary, operation.description, operation.tags);
       const example = makeExample(
-        serviceId,
         method,
         path,
         operation,

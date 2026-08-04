@@ -259,8 +259,7 @@ async function cmdOps(args) {
   const where = serviceId ? `服务 ${serviceId}` : "全部服务";
   println(`${where} 的 operation（${json.total} 个）：\n`);
   printTable(
-    // serviceId 仅作来源标注，用方括号括起，避免与真实 path 黏连被误读成多一层目录。
-    json.operations.map((o) => [o.risk_level, o.method, `[${o.service_id}] ${o.path}`, o.operation_id]),
+    json.operations.map((o) => [o.risk_level, o.method, o.path, o.operation_id]),
     { headers: ["风险", "方法", "路径", "Operation ID"] },
   );
 }
@@ -279,7 +278,7 @@ async function cmdSearch(args) {
   const where = serviceId ? `（限定服务 ${serviceId}）` : "";
   println(`为「${query}」${where} 找到 ${json.total} 个接口：\n`);
   for (const r of json.results) {
-    println(`• ${r.operation_id}  [${r.method}] [${r.service_id}] ${r.path}  风险:${r.risk_level}  匹配度:${r.score}`);
+    println(`• ${r.operation_id}  [${r.method} ${r.path}]  风险:${r.risk_level}  匹配度:${r.score}`);
     if (r.summary) println(`  ${r.summary}`);
     println(`  必填参数: ${r.required_params.join(", ") || "（无）"}`);
   }
