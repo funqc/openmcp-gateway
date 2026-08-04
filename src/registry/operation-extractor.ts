@@ -115,7 +115,8 @@ function makeExample(
     ? "?" + new URLSearchParams(Object.fromEntries(Object.entries(queryParams).map(([k, v]) => [k, String(v)]))).toString()
     : "";
   const bodySample = bodySchema ? sampleFor(bodySchema) : null;
-  const lines: string[] = [`# ${method} ${serviceId}${resolvedPath}${qs}`];
+  // serviceId 仅作来源标注，用方括号括起，避免与真实 path 黏连被误读成多一层目录。
+  const lines: string[] = [`# ${method} [${serviceId}] ${resolvedPath}${qs}`];
   lines.push(`operation_id: ${operationId}`);
   if (operation.summary) lines.push(`summary: ${operation.summary}`);
   lines.push("");
