@@ -14,10 +14,16 @@ import { Bm25Search } from "./bm25-search.js";
 
 export async function createSearch(): Promise<OperationSearch> {
   switch (config.searchProvider) {
-    case "embedding":
+    case "embedding": {
+      // embedding 后端要加载 ONNX 模型，可能耗时十几秒——先打一行告诉用户在干嘛。
+      // eslint-disable-next-line no-console
+      console.log(`[search] 加载搜索后端 (embedding: ${config.embeddingModel})…`);
       return await createEmbeddingSearch();
+    }
     case "bm25":
     default:
+      // eslint-disable-next-line no-console
+      console.log("[search] 加载搜索后端 (bm25)…");
       return new Bm25Search();
   }
 }

@@ -190,11 +190,28 @@ export class Registry {
     const { descriptors, exists } = loadServiceDescriptors();
     const declaredIds = new Set(descriptors.map((d) => d.id));
     const results: RegisterResult[] = [];
+    const total = descriptors.length;
+    let idx = 0;
+    let succeeded = 0;
+    let skipped = 0;
+    let failed = 0;
+    const discoverStart = Date.now();
 
     for (const { id, source, baseUrl, type, proxy } of descriptors) {
+      idx++;
+      const t0 = Date.now();
       try {
         const r = await this.register({ serviceId: id, source, baseUrl, type, proxyUrl: proxy });
         results.push(r);
+        const elapsed = Date.now() - t0;
+        // 每个服务注册完立刻打一行进度（不再等全部跑完），避免长时间静默。
+        if (r.skipped) {
+          skipped++;
+          console.log(`[registry] (${idx}/${total}) ${id} … up-to-date (hash ${r.hash.slice(0, 8)})，用时 ${elapsed}ms`);
+        } else {
+          succeeded++;
+          console.log(`[registry] (${idx}/${total}) ${id} … 注册了 ${r.inserted} 个 operation (hash ${r.hash.slice(0, 8)})，用时 ${elapsed}ms`);
+        }
         logAudit({
           ts: Date.now(),
           sessionId: "system",
@@ -206,7 +223,10 @@ export class Registry {
           outcome: "success",
         });
       } catch (err) {
+        failed++;
+        const elapsed = Date.now() - t0;
         // 单个 spec 失败不中断其余服务。
+        console.error(`[registry] (${idx}/${total}) ${id} … 注册失败（${source}），用时 ${elapsed}ms:`, (err as Error).message);
         logAudit({
           ts: Date.now(),
           sessionId: "system",
@@ -217,9 +237,14 @@ export class Registry {
           durationMs: 0,
           outcome: "upstream_error",
         });
-        console.error(`[registry] 注册 "${id}" 失败（${source}）:`, (err as Error).message);
       }
     }
+
+    // 收尾汇总。
+    const totalElapsed = ((Date.now() - discoverStart) / 1000).toFixed(1);
+    console.log(
+      `[registry] 发现完成：${total} 个服务，成功 ${succeeded}，跳过 ${skipped}（已是最新），失败 ${failed}，总用时 ${totalElapsed}s`,
+    );
 
     // 清理：DB 中存在、但配置里已删除/禁用的服务。
     if (exists) {

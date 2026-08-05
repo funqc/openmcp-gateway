@@ -6,19 +6,26 @@
  *   3. Discover + register all configured services (boot-time ingestion)
  *   4. Start the Streamable-HTTP MCP server on /mcp
  */
-import { config } from "./config.js";
+import { config, loadServiceDescriptors } from "./config.js";
 import { createApp, closeApp } from "./transport.js";
 import { getRegistry } from "./services.js";
 
 async function main(): Promise<void> {
+  const serviceCount = loadServiceDescriptors().descriptors.length;
+  // 启动 banner：第一时间告诉用户在干嘛，避免随后几十秒静默（embedding 模型加载 +
+  // 逐个 fetch spec 都需要时间）。createSearch() 内部会再打一行搜索后端日志。
+  // eslint-disable-next-line no-console
+  console.log(
+    `[openmcp-gateway] 启动中… (host=${config.host}:${config.port}, search=${config.searchProvider}, services=${serviceCount})`,
+  );
+
+  // getRegistry() 会首次构造 Registry 并初始化搜索后端（embedding 模式加载 ONNX 模型，
+  // 可能耗时十几秒，期间已有「加载搜索后端…」日志提示）。
   const registry = await getRegistry();
 
-  // Boot-time discovery (register demo services if configured).
-  const results = await registry.discover();
-  for (const r of results) {
-    // eslint-disable-next-line no-console
-    console.log(`[registry] ${r.serviceId}: ${r.skipped ? "up-to-date" : `registered ${r.inserted} operations`} (hash ${r.hash.slice(0, 8)})`);
-  }
+  // Boot-time discovery：discover() 内部会逐条打印每个服务的注册进度 + 收尾汇总，
+  // 这里不再额外打印，避免重复。
+  await registry.discover();
 
   const app = createApp();
   const httpServer = app.listen(config.port, config.host, () => {
