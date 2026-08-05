@@ -197,6 +197,13 @@ export class Registry {
     let failed = 0;
     const discoverStart = Date.now();
 
+    if (total > 0) {
+      // 串行拉取每个 spec 并即时打印进度；这里先打一行告诉用户工作量，
+      // 避免 [search] 之后到第一条 [registry] 之间静默（首个 spec 的网络拉取
+      // 可能要几秒到十几秒）。
+      console.log(`[registry] 正在拉取 ${total} 个服务 spec（串行，单个超时 15s）…`);
+    }
+
     for (const { id, source, baseUrl, type, proxy } of descriptors) {
       idx++;
       const t0 = Date.now();

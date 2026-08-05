@@ -33,6 +33,11 @@ async function getConfig(): Promise<Config> {
   return _config;
 }
 
+/** Spec 拉取的硬超时（毫秒）。undici 默认 headersTimeout ~300s，一个卡死的
+ * 上游会把启动阻塞数分钟。15s 对绝大多数 spec（含大型 JSON）都够，卡死时
+ * 能快速失败、不拖累其余服务。 */
+const SPEC_FETCH_TIMEOUT_MS = 15_000;
+
 /**
  * Load a raw OpenAPI document from a file path, URL, or inline object.
  *
@@ -46,7 +51,11 @@ export async function loadSpec(source: string | object): Promise<{ raw: string; 
     return { raw: JSON.stringify(source), absoluteRef: "inline.json" };
   }
   if (/^https?:\/\//i.test(source)) {
-    const res = await fetch(source, { headers: { accept: "application/json, application/yaml, */*" } });
+    // AbortSignal.timeout 在超时后 abort fetch，避免单个慢上游阻塞启动。
+    const res = await fetch(source, {
+      headers: { accept: "application/json, application/yaml, */*" },
+      signal: AbortSignal.timeout(SPEC_FETCH_TIMEOUT_MS),
+    });
     if (!res.ok) throw new Error(`Failed to fetch OpenAPI from ${source}: ${res.status}`);
     return { raw: await res.text(), absoluteRef: source };
   }
