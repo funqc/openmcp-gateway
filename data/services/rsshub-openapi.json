@@ -1,0 +1,272 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "version": "0.0.1",
+    "title": "RSSHub API"
+  },
+  "components": {
+    "schemas": {},
+    "parameters": {}
+  },
+  "paths": {
+    "/api/namespace": {
+      "get": {
+        "description": "Information about all namespaces",
+        "tags": [
+          "Namespace"
+        ],
+        "responses": {
+          "200": {
+            "description": "Namespace registry data for all namespaces"
+          }
+        }
+      }
+    },
+    "/api/namespace/{namespace}": {
+      "get": {
+        "description": "Information about a namespace",
+        "tags": [
+          "Namespace"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "github"
+            },
+            "required": true,
+            "name": "namespace",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Namespace registry data for a namespace"
+          }
+        }
+      }
+    },
+    "/api/namespace/{namespace}/{sub}": {
+      "get": {
+        "description": "Information about a nested namespace (e.g. gov/ah)",
+        "tags": [
+          "Namespace"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "gov"
+            },
+            "required": true,
+            "name": "namespace",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "ah"
+            },
+            "required": true,
+            "name": "sub",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Namespace registry data for a nested namespace"
+          }
+        }
+      }
+    },
+    "/api/radar/rules": {
+      "get": {
+        "description": "All Radar rules grouped by domain",
+        "tags": [
+          "Radar"
+        ],
+        "responses": {
+          "200": {
+            "description": "Radar rules grouped by domain"
+          }
+        }
+      }
+    },
+    "/api/radar/rules/{domain}": {
+      "get": {
+        "description": "Radar rules for a domain name",
+        "tags": [
+          "Radar"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "github.com"
+            },
+            "required": true,
+            "name": "domain",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Radar rules for a domain name (no subdomains)"
+          }
+        }
+      }
+    },
+    "/api/category/{category}": {
+      "get": {
+        "description": "Namespace list filtered by category",
+        "tags": [
+          "Category"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "popular"
+            },
+            "required": true,
+            "name": "category",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "categories",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "lang",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Namespaces matching the requested category"
+          }
+        }
+      }
+    },
+    "/api/route/status": {
+      "get": {
+        "description": "Check if a route path is cached",
+        "tags": [
+          "Route"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "/github/comments/DIYgod/RSSHub/20768",
+              "description": "The route path to check cache status for"
+            },
+            "required": true,
+            "description": "The route path to check cache status for",
+            "name": "requestPath",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cache found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "cached": {
+                      "type": "boolean"
+                    },
+                    "lastBuildDate": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "cached",
+                    "lastBuildDate"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Cache not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "cached": {
+                      "type": "boolean"
+                    },
+                    "lastBuildDate": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "cached",
+                    "lastBuildDate"
+                  ]
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Cache module unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "cached": {
+                      "type": "boolean"
+                    },
+                    "lastBuildDate": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "cached",
+                    "lastBuildDate"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/follow/config": {
+      "get": {
+        "description": "Follow configuration for the current instance",
+        "tags": [
+          "Follow"
+        ],
+        "responses": {
+          "200": {
+            "description": "Follow configuration for the current instance"
+          }
+        }
+      }
+    }
+  },
+  "webhooks": {}
+}

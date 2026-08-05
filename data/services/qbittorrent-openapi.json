@@ -1,0 +1,3342 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "qBittorrent WebUI API",
+    "version": "5.0",
+    "description": "qBittorrent 5.0+ WebUI API，依据官方文档生成。所有接口均位于 /api/v2 下；除 auth/login 外均需 SID cookie。"
+  },
+  "servers": [
+    {
+      "url": "http://QBITTORRENT_HOST:8080",
+      "description": "替换为 qBittorrent WebUI 地址"
+    }
+  ],
+  "security": [
+    {
+      "qbittorrentSession": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Authentication"
+    },
+    {
+      "name": "Application"
+    },
+    {
+      "name": "Log"
+    },
+    {
+      "name": "Sync"
+    },
+    {
+      "name": "Transfer"
+    },
+    {
+      "name": "Torrents"
+    },
+    {
+      "name": "RSS"
+    },
+    {
+      "name": "Search"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "qbittorrentSession": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "SID",
+        "description": "先调用 auth/login，由 qBittorrent 返回 SID cookie。"
+      }
+    }
+  },
+  "paths": {
+    "/api/v2/auth/logout": {
+      "get": {
+        "operationId": "qbittorrent_auth_logout",
+        "summary": "登出",
+        "tags": [
+          "Authentication"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        }
+      }
+    },
+    "/api/v2/app/version": {
+      "get": {
+        "operationId": "qbittorrent_app_version",
+        "summary": "获取 qBittorrent 版本",
+        "tags": [
+          "Application"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        }
+      }
+    },
+    "/api/v2/app/webapiVersion": {
+      "get": {
+        "operationId": "qbittorrent_app_webapiVersion",
+        "summary": "获取 Web API 版本",
+        "tags": [
+          "Application"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        }
+      }
+    },
+    "/api/v2/app/buildInfo": {
+      "get": {
+        "operationId": "qbittorrent_app_buildInfo",
+        "summary": "获取构建信息",
+        "tags": [
+          "Application"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        }
+      }
+    },
+    "/api/v2/app/preferences": {
+      "get": {
+        "operationId": "qbittorrent_app_preferences",
+        "summary": "获取应用偏好设置",
+        "tags": [
+          "Application"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        }
+      }
+    },
+    "/api/v2/app/defaultSavePath": {
+      "get": {
+        "operationId": "qbittorrent_app_defaultSavePath",
+        "summary": "获取默认保存路径",
+        "tags": [
+          "Application"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        }
+      }
+    },
+    "/api/v2/app/cookies": {
+      "get": {
+        "operationId": "qbittorrent_app_cookies",
+        "summary": "获取 cookies",
+        "tags": [
+          "Application"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        }
+      }
+    },
+    "/api/v2/log/main": {
+      "get": {
+        "operationId": "qbittorrent_log_main",
+        "summary": "获取主日志",
+        "tags": [
+          "Log"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        }
+      }
+    },
+    "/api/v2/log/peers": {
+      "get": {
+        "operationId": "qbittorrent_log_peers",
+        "summary": "获取 peer 日志",
+        "tags": [
+          "Log"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        }
+      }
+    },
+    "/api/v2/sync/maindata": {
+      "get": {
+        "operationId": "qbittorrent_sync_maindata",
+        "summary": "获取增量主数据",
+        "tags": [
+          "Sync"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        }
+      }
+    },
+    "/api/v2/sync/torrentPeers": {
+      "get": {
+        "operationId": "qbittorrent_sync_torrentPeers",
+        "summary": "获取 torrent peers 增量数据",
+        "tags": [
+          "Sync"
+        ],
+        "parameters": [
+          {
+            "name": "hash",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "rid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        }
+      }
+    },
+    "/api/v2/transfer/info": {
+      "get": {
+        "operationId": "qbittorrent_transfer_info",
+        "summary": "获取全局传输信息",
+        "tags": [
+          "Transfer"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        }
+      }
+    },
+    "/api/v2/transfer/speedLimitsMode": {
+      "get": {
+        "operationId": "qbittorrent_transfer_speedLimitsMode",
+        "summary": "获取替代速度限制状态",
+        "tags": [
+          "Transfer"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        }
+      }
+    },
+    "/api/v2/torrents/info": {
+      "get": {
+        "operationId": "qbittorrent_torrents_info",
+        "summary": "获取 torrent 列表",
+        "tags": [
+          "Torrents"
+        ],
+        "parameters": [
+          {
+            "name": "filter",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tag",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "reverse",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "hashes",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        }
+      }
+    },
+    "/api/v2/torrents/properties": {
+      "get": {
+        "operationId": "qbittorrent_torrents_properties",
+        "summary": "获取 torrent 属性",
+        "tags": [
+          "Torrents"
+        ],
+        "parameters": [
+          {
+            "name": "hash",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        }
+      }
+    },
+    "/api/v2/torrents/trackers": {
+      "get": {
+        "operationId": "qbittorrent_torrents_trackers",
+        "summary": "获取 torrent trackers",
+        "tags": [
+          "Torrents"
+        ],
+        "parameters": [
+          {
+            "name": "hash",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        }
+      }
+    },
+    "/api/v2/torrents/webseeds": {
+      "get": {
+        "operationId": "qbittorrent_torrents_webseeds",
+        "summary": "获取 torrent web seeds",
+        "tags": [
+          "Torrents"
+        ],
+        "parameters": [
+          {
+            "name": "hash",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        }
+      }
+    },
+    "/api/v2/torrents/contents": {
+      "get": {
+        "operationId": "qbittorrent_torrents_contents",
+        "summary": "获取 torrent 内容",
+        "tags": [
+          "Torrents"
+        ],
+        "parameters": [
+          {
+            "name": "hash",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "indexes",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        }
+      }
+    },
+    "/api/v2/torrents/pieceStates": {
+      "get": {
+        "operationId": "qbittorrent_torrents_pieceStates",
+        "summary": "获取 torrent 分片状态",
+        "tags": [
+          "Torrents"
+        ],
+        "parameters": [
+          {
+            "name": "hash",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        }
+      }
+    },
+    "/api/v2/torrents/pieceHashes": {
+      "get": {
+        "operationId": "qbittorrent_torrents_pieceHashes",
+        "summary": "获取 torrent 分片 hash",
+        "tags": [
+          "Torrents"
+        ],
+        "parameters": [
+          {
+            "name": "hash",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        }
+      }
+    },
+    "/api/v2/torrents/downloadLimit": {
+      "get": {
+        "operationId": "qbittorrent_torrents_downloadLimit",
+        "summary": "获取 torrent 下载限速",
+        "tags": [
+          "Torrents"
+        ],
+        "parameters": [
+          {
+            "name": "hashes",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        }
+      }
+    },
+    "/api/v2/torrents/uploadLimit": {
+      "get": {
+        "operationId": "qbittorrent_torrents_uploadLimit",
+        "summary": "获取 torrent 上传限速",
+        "tags": [
+          "Torrents"
+        ],
+        "parameters": [
+          {
+            "name": "hashes",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        }
+      }
+    },
+    "/api/v2/torrents/categories": {
+      "get": {
+        "operationId": "qbittorrent_torrents_categories",
+        "summary": "获取全部分类",
+        "tags": [
+          "Torrents"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        }
+      }
+    },
+    "/api/v2/torrents/tags": {
+      "get": {
+        "operationId": "qbittorrent_torrents_tags",
+        "summary": "获取全部标签",
+        "tags": [
+          "Torrents"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        }
+      }
+    },
+    "/api/v2/rss/items": {
+      "get": {
+        "operationId": "qbittorrent_rss_items",
+        "summary": "获取全部 RSS 项目",
+        "tags": [
+          "RSS"
+        ],
+        "parameters": [
+          {
+            "name": "withData",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        }
+      }
+    },
+    "/api/v2/rss/rules": {
+      "get": {
+        "operationId": "qbittorrent_rss_rules",
+        "summary": "获取全部 RSS 自动下载规则",
+        "tags": [
+          "RSS"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        }
+      }
+    },
+    "/api/v2/rss/matchingArticles": {
+      "get": {
+        "operationId": "qbittorrent_rss_matchingArticles",
+        "summary": "获取匹配规则的 RSS 文章",
+        "tags": [
+          "RSS"
+        ],
+        "parameters": [
+          {
+            "name": "ruleName",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        }
+      }
+    },
+    "/api/v2/search/status": {
+      "get": {
+        "operationId": "qbittorrent_search_status",
+        "summary": "获取搜索状态",
+        "tags": [
+          "Search"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        }
+      }
+    },
+    "/api/v2/search/results": {
+      "get": {
+        "operationId": "qbittorrent_search_results",
+        "summary": "获取搜索结果",
+        "tags": [
+          "Search"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        }
+      }
+    },
+    "/api/v2/search/plugins": {
+      "get": {
+        "operationId": "qbittorrent_search_plugins",
+        "summary": "获取搜索插件",
+        "tags": [
+          "Search"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        }
+      }
+    },
+    "/api/v2/auth/login": {
+      "post": {
+        "operationId": "qbittorrent_auth_login",
+        "summary": "登录",
+        "tags": [
+          "Authentication"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/app/shutdown": {
+      "post": {
+        "operationId": "qbittorrent_app_shutdown",
+        "summary": "关闭应用",
+        "tags": [
+          "Application"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/app/setPreferences": {
+      "post": {
+        "operationId": "qbittorrent_app_setPreferences",
+        "summary": "设置应用偏好",
+        "tags": [
+          "Application"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "json": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/app/setCookies": {
+      "post": {
+        "operationId": "qbittorrent_app_setCookies",
+        "summary": "设置 cookies",
+        "tags": [
+          "Application"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "cookies": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/transfer/toggleSpeedLimitsMode": {
+      "post": {
+        "operationId": "qbittorrent_transfer_toggleSpeedLimitsMode",
+        "summary": "切换替代速度限制",
+        "tags": [
+          "Transfer"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/transfer/setDownloadLimit": {
+      "post": {
+        "operationId": "qbittorrent_transfer_setDownloadLimit",
+        "summary": "设置全局下载限速",
+        "tags": [
+          "Transfer"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "limit": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/transfer/setUploadLimit": {
+      "post": {
+        "operationId": "qbittorrent_transfer_setUploadLimit",
+        "summary": "设置全局上传限速",
+        "tags": [
+          "Transfer"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "limit": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/transfer/banPeers": {
+      "post": {
+        "operationId": "qbittorrent_transfer_banPeers",
+        "summary": "封禁 peers",
+        "tags": [
+          "Transfer"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "peers": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/torrents/reannounce": {
+      "post": {
+        "operationId": "qbittorrent_torrents_reannounce",
+        "summary": "重新 announce torrents",
+        "tags": [
+          "Torrents"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "hashes": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/torrents/add": {
+      "post": {
+        "operationId": "qbittorrent_torrents_add",
+        "summary": "添加 torrent",
+        "tags": [
+          "Torrents"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "urls": {
+                    "type": "string"
+                  },
+                  "savepath": {
+                    "type": "string"
+                  },
+                  "category": {
+                    "type": "string"
+                  },
+                  "tags": {
+                    "type": "string"
+                  },
+                  "skip_checking": {
+                    "type": "string"
+                  },
+                  "paused": {
+                    "type": "string"
+                  },
+                  "root_folder": {
+                    "type": "string"
+                  },
+                  "rename": {
+                    "type": "string"
+                  },
+                  "upLimit": {
+                    "type": "string"
+                  },
+                  "dlLimit": {
+                    "type": "string"
+                  },
+                  "ratioLimit": {
+                    "type": "string"
+                  },
+                  "seedingTimeLimit": {
+                    "type": "string"
+                  },
+                  "autoTMM": {
+                    "type": "string"
+                  },
+                  "sequentialDownload": {
+                    "type": "string"
+                  },
+                  "firstLastPiecePrio": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/torrents/delete": {
+      "post": {
+        "operationId": "qbittorrent_torrents_delete",
+        "summary": "删除 torrents",
+        "tags": [
+          "Torrents"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "hashes": {
+                    "type": "string"
+                  },
+                  "deleteFiles": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/torrents/pause": {
+      "post": {
+        "operationId": "qbittorrent_torrents_pause",
+        "summary": "暂停 torrents",
+        "tags": [
+          "Torrents"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "hashes": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/torrents/resume": {
+      "post": {
+        "operationId": "qbittorrent_torrents_resume",
+        "summary": "恢复 torrents",
+        "tags": [
+          "Torrents"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "hashes": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/torrents/recheck": {
+      "post": {
+        "operationId": "qbittorrent_torrents_recheck",
+        "summary": "重新校验 torrents",
+        "tags": [
+          "Torrents"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "hashes": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/torrents/editTracker": {
+      "post": {
+        "operationId": "qbittorrent_torrents_editTracker",
+        "summary": "编辑 tracker",
+        "tags": [
+          "Torrents"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "hash": {
+                    "type": "string"
+                  },
+                  "origUrl": {
+                    "type": "string"
+                  },
+                  "newUrl": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/torrents/removeTrackers": {
+      "post": {
+        "operationId": "qbittorrent_torrents_removeTrackers",
+        "summary": "移除 trackers",
+        "tags": [
+          "Torrents"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "hash": {
+                    "type": "string"
+                  },
+                  "urls": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/torrents/addPeers": {
+      "post": {
+        "operationId": "qbittorrent_torrents_addPeers",
+        "summary": "添加 peers",
+        "tags": [
+          "Torrents"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "hashes": {
+                    "type": "string"
+                  },
+                  "urls": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/torrents/setLocation": {
+      "post": {
+        "operationId": "qbittorrent_torrents_setLocation",
+        "summary": "设置 torrent 保存位置",
+        "tags": [
+          "Torrents"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "hashes": {
+                    "type": "string"
+                  },
+                  "location": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/torrents/setCategory": {
+      "post": {
+        "operationId": "qbittorrent_torrents_setCategory",
+        "summary": "设置 torrent 分类",
+        "tags": [
+          "Torrents"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "hashes": {
+                    "type": "string"
+                  },
+                  "category": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/torrents/setTags": {
+      "post": {
+        "operationId": "qbittorrent_torrents_setTags",
+        "summary": "添加 torrent 标签",
+        "tags": [
+          "Torrents"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "hashes": {
+                    "type": "string"
+                  },
+                  "tags": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/torrents/removeTags": {
+      "post": {
+        "operationId": "qbittorrent_torrents_removeTags",
+        "summary": "移除 torrent 标签",
+        "tags": [
+          "Torrents"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "hashes": {
+                    "type": "string"
+                  },
+                  "tags": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/torrents/setDownloadLimit": {
+      "post": {
+        "operationId": "qbittorrent_torrents_setDownloadLimit",
+        "summary": "设置 torrent 下载限速",
+        "tags": [
+          "Torrents"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "hashes": {
+                    "type": "string"
+                  },
+                  "limit": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/torrents/setUploadLimit": {
+      "post": {
+        "operationId": "qbittorrent_torrents_setUploadLimit",
+        "summary": "设置 torrent 上传限速",
+        "tags": [
+          "Torrents"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "hashes": {
+                    "type": "string"
+                  },
+                  "limit": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/torrents/setShareLimits": {
+      "post": {
+        "operationId": "qbittorrent_torrents_setShareLimits",
+        "summary": "设置 torrent 分享限制",
+        "tags": [
+          "Torrents"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "hashes": {
+                    "type": "string"
+                  },
+                  "ratioLimit": {
+                    "type": "string"
+                  },
+                  "seedingTimeLimit": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/torrents/setFilePrio": {
+      "post": {
+        "operationId": "qbittorrent_torrents_setFilePrio",
+        "summary": "设置文件优先级",
+        "tags": [
+          "Torrents"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "hash": {
+                    "type": "string"
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "priority": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/torrents/setName": {
+      "post": {
+        "operationId": "qbittorrent_torrents_setName",
+        "summary": "设置 torrent 名称",
+        "tags": [
+          "Torrents"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "hash": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/torrents/setAutoManagement": {
+      "post": {
+        "operationId": "qbittorrent_torrents_setAutoManagement",
+        "summary": "设置自动 torrent 管理",
+        "tags": [
+          "Torrents"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "hashes": {
+                    "type": "string"
+                  },
+                  "enable": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/torrents/toggleSequentialDownload": {
+      "post": {
+        "operationId": "qbittorrent_torrents_toggleSequentialDownload",
+        "summary": "切换顺序下载",
+        "tags": [
+          "Torrents"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "hashes": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/torrents/setFirstLastPiecePrio": {
+      "post": {
+        "operationId": "qbittorrent_torrents_setFirstLastPiecePrio",
+        "summary": "设置首尾分片优先",
+        "tags": [
+          "Torrents"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "hashes": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/torrents/setForceStart": {
+      "post": {
+        "operationId": "qbittorrent_torrents_setForceStart",
+        "summary": "设置强制开始",
+        "tags": [
+          "Torrents"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "hashes": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/torrents/setSuperSeeding": {
+      "post": {
+        "operationId": "qbittorrent_torrents_setSuperSeeding",
+        "summary": "设置超级做种",
+        "tags": [
+          "Torrents"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "hashes": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/torrents/increasePrio": {
+      "post": {
+        "operationId": "qbittorrent_torrents_increasePrio",
+        "summary": "提高 torrent 优先级",
+        "tags": [
+          "Torrents"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "hashes": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/torrents/decreasePrio": {
+      "post": {
+        "operationId": "qbittorrent_torrents_decreasePrio",
+        "summary": "降低 torrent 优先级",
+        "tags": [
+          "Torrents"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "hashes": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/torrents/topPrio": {
+      "post": {
+        "operationId": "qbittorrent_torrents_topPrio",
+        "summary": "设置最大 torrent 优先级",
+        "tags": [
+          "Torrents"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "hashes": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/torrents/bottomPrio": {
+      "post": {
+        "operationId": "qbittorrent_torrents_bottomPrio",
+        "summary": "设置最小 torrent 优先级",
+        "tags": [
+          "Torrents"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "hashes": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/torrents/addTrackers": {
+      "post": {
+        "operationId": "qbittorrent_torrents_addTrackers",
+        "summary": "添加 trackers",
+        "tags": [
+          "Torrents"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "hash": {
+                    "type": "string"
+                  },
+                  "urls": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/torrents/renameFile": {
+      "post": {
+        "operationId": "qbittorrent_torrents_renameFile",
+        "summary": "重命名文件",
+        "tags": [
+          "Torrents"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "hash": {
+                    "type": "string"
+                  },
+                  "oldPath": {
+                    "type": "string"
+                  },
+                  "newPath": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/torrents/renameFolder": {
+      "post": {
+        "operationId": "qbittorrent_torrents_renameFolder",
+        "summary": "重命名文件夹",
+        "tags": [
+          "Torrents"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "hash": {
+                    "type": "string"
+                  },
+                  "oldPath": {
+                    "type": "string"
+                  },
+                  "newPath": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/torrents/createCategory": {
+      "post": {
+        "operationId": "qbittorrent_torrents_createCategory",
+        "summary": "创建分类",
+        "tags": [
+          "Torrents"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "category": {
+                    "type": "string"
+                  },
+                  "savePath": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/torrents/editCategory": {
+      "post": {
+        "operationId": "qbittorrent_torrents_editCategory",
+        "summary": "编辑分类",
+        "tags": [
+          "Torrents"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "category": {
+                    "type": "string"
+                  },
+                  "savePath": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/torrents/removeCategories": {
+      "post": {
+        "operationId": "qbittorrent_torrents_removeCategories",
+        "summary": "删除分类",
+        "tags": [
+          "Torrents"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "categories": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/torrents/createTags": {
+      "post": {
+        "operationId": "qbittorrent_torrents_createTags",
+        "summary": "创建标签",
+        "tags": [
+          "Torrents"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "tags": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/torrents/deleteTags": {
+      "post": {
+        "operationId": "qbittorrent_torrents_deleteTags",
+        "summary": "删除标签",
+        "tags": [
+          "Torrents"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "tags": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/rss/addFolder": {
+      "post": {
+        "operationId": "qbittorrent_rss_addFolder",
+        "summary": "添加 RSS 文件夹",
+        "tags": [
+          "RSS"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/rss/addFeed": {
+      "post": {
+        "operationId": "qbittorrent_rss_addFeed",
+        "summary": "添加 RSS feed",
+        "tags": [
+          "RSS"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string"
+                  },
+                  "path": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/rss/removeItem": {
+      "post": {
+        "operationId": "qbittorrent_rss_removeItem",
+        "summary": "移除 RSS 项目",
+        "tags": [
+          "RSS"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/rss/moveItem": {
+      "post": {
+        "operationId": "qbittorrent_rss_moveItem",
+        "summary": "移动 RSS 项目",
+        "tags": [
+          "RSS"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "itemPath": {
+                    "type": "string"
+                  },
+                  "destPath": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/rss/markAsRead": {
+      "post": {
+        "operationId": "qbittorrent_rss_markAsRead",
+        "summary": "标记 RSS 已读",
+        "tags": [
+          "RSS"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "itemPath": {
+                    "type": "string"
+                  },
+                  "articleId": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/rss/refreshItem": {
+      "post": {
+        "operationId": "qbittorrent_rss_refreshItem",
+        "summary": "刷新 RSS 项目",
+        "tags": [
+          "RSS"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "itemPath": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/rss/setRule": {
+      "post": {
+        "operationId": "qbittorrent_rss_setRule",
+        "summary": "设置 RSS 自动下载规则",
+        "tags": [
+          "RSS"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ruleName": {
+                    "type": "string"
+                  },
+                  "ruleDefinition": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/rss/renameRule": {
+      "post": {
+        "operationId": "qbittorrent_rss_renameRule",
+        "summary": "重命名 RSS 规则",
+        "tags": [
+          "RSS"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ruleName": {
+                    "type": "string"
+                  },
+                  "newRuleName": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/rss/removeRule": {
+      "post": {
+        "operationId": "qbittorrent_rss_removeRule",
+        "summary": "删除 RSS 规则",
+        "tags": [
+          "RSS"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ruleName": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/search/start": {
+      "post": {
+        "operationId": "qbittorrent_search_start",
+        "summary": "开始搜索",
+        "tags": [
+          "Search"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "pattern": {
+                    "type": "string"
+                  },
+                  "plugins": {
+                    "type": "string"
+                  },
+                  "category": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/search/stop": {
+      "post": {
+        "operationId": "qbittorrent_search_stop",
+        "summary": "停止搜索",
+        "tags": [
+          "Search"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/search/delete": {
+      "post": {
+        "operationId": "qbittorrent_search_delete",
+        "summary": "删除搜索任务",
+        "tags": [
+          "Search"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/search/installPlugin": {
+      "post": {
+        "operationId": "qbittorrent_search_installPlugin",
+        "summary": "安装搜索插件",
+        "tags": [
+          "Search"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "sources": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/search/uninstallPlugin": {
+      "post": {
+        "operationId": "qbittorrent_search_uninstallPlugin",
+        "summary": "卸载搜索插件",
+        "tags": [
+          "Search"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/search/enablePlugin": {
+      "post": {
+        "operationId": "qbittorrent_search_enablePlugin",
+        "summary": "启用搜索插件",
+        "tags": [
+          "Search"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "names": {
+                    "type": "string"
+                  },
+                  "enable": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/search/updatePlugins": {
+      "post": {
+        "operationId": "qbittorrent_search_updatePlugins",
+        "summary": "更新搜索插件",
+        "tags": [
+          "Search"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "未认证"
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

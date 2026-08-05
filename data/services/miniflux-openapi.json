@@ -1,0 +1,1014 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Miniflux API",
+    "version": "2.0.49",
+    "description": "REST API for the Miniflux RSS reader, derived from the official Python client (miniflux/python-client). All endpoints are prefixed with /v1. Authentication uses either HTTP Basic (username/password) or an X-Auth-Token API key header."
+  },
+  "servers": [
+    { "url": "http://your-miniflux-host:8080" }
+  ],
+  "tags": [
+    { "name": "Application", "description": "Instance metadata and integration status" },
+    { "name": "Subscriptions", "description": "OPML import/export and feed discovery" },
+    { "name": "Categories", "description": "Category management" },
+    { "name": "Feeds", "description": "Feed management and refresh" },
+    { "name": "Entries", "description": "Entry queries, updates, and actions" },
+    { "name": "Enclosures", "description": "Media enclosures (podcasts, attachments)" },
+    { "name": "Users", "description": "User management" },
+    { "name": "API Keys", "description": "API key management" }
+  ],
+  "paths": {
+    "/v1/version": {
+      "get": {
+        "operationId": "getVersion",
+        "summary": "Get application version",
+        "description": "Returns version information for the Miniflux instance.",
+        "tags": ["Application"],
+        "responses": {
+          "200": { "description": "Version information", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Version" } } } }
+        }
+      }
+    },
+    "/v1/me": {
+      "get": {
+        "operationId": "getMe",
+        "summary": "Get the authenticated user",
+        "description": "Returns the profile of the currently authenticated user.",
+        "tags": ["Users"],
+        "responses": {
+          "200": { "description": "The authenticated user", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/User" } } } }
+        }
+      }
+    },
+    "/v1/integrations/status": {
+      "get": {
+        "operationId": "getIntegrationsStatus",
+        "summary": "Get third-party integration status",
+        "description": "Indicates whether at least one third-party integration (e.g. save entry to a service) is enabled.",
+        "tags": ["Application"],
+        "responses": {
+          "200": { "description": "Integration status", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/IntegrationsStatus" } } } }
+        }
+      }
+    },
+    "/v1/flush-history": {
+      "delete": {
+        "operationId": "flushHistory",
+        "summary": "Flush history",
+        "description": "Marks all read entries as removed except the starred ones. Scheduled asynchronously.",
+        "tags": ["Entries"],
+        "responses": {
+          "202": { "description": "Operation scheduled" }
+        }
+      }
+    },
+    "/v1/export": {
+      "get": {
+        "operationId": "exportFeeds",
+        "summary": "Export subscriptions (OPML)",
+        "description": "Exports the user's feeds in OPML format.",
+        "tags": ["Subscriptions"],
+        "responses": {
+          "200": { "description": "OPML document", "content": { "text/xml": { "schema": { "type": "string" } } } }
+        }
+      }
+    },
+    "/v1/import": {
+      "post": {
+        "operationId": "importFeeds",
+        "summary": "Import subscriptions (OPML)",
+        "description": "Imports feeds from an OPML document.",
+        "tags": ["Subscriptions"],
+        "requestBody": {
+          "required": true,
+          "content": { "text/xml": { "schema": { "type": "string", "description": "OPML data" } } }
+        },
+        "responses": {
+          "201": { "description": "Import result", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ImportResult" } } } }
+        }
+      }
+    },
+    "/v1/discover": {
+      "post": {
+        "operationId": "discoverFeeds",
+        "summary": "Discover feeds on a website",
+        "description": "Discovers available feed subscriptions from a website URL.",
+        "tags": ["Subscriptions"],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DiscoverRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "List of discovered subscriptions", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Subscription" } } } } }
+        }
+      }
+    },
+    "/v1/categories": {
+      "get": {
+        "operationId": "getCategories",
+        "summary": "List categories",
+        "description": "Returns all categories for the authenticated user.",
+        "tags": ["Categories"],
+        "responses": {
+          "200": { "description": "List of categories", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Category" } } } } }
+        }
+      },
+      "post": {
+        "operationId": "createCategory",
+        "summary": "Create a category",
+        "description": "Creates a new category.",
+        "tags": ["Categories"],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CategoryCreate" } } }
+        },
+        "responses": {
+          "201": { "description": "Created category", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Category" } } } }
+        }
+      }
+    },
+    "/v1/categories/{categoryId}": {
+      "parameters": [{ "$ref": "#/components/parameters/CategoryId" }],
+      "put": {
+        "operationId": "updateCategory",
+        "summary": "Update a category",
+        "description": "Updates the title of an existing category.",
+        "tags": ["Categories"],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CategoryUpdate" } } }
+        },
+        "responses": {
+          "201": { "description": "Updated category", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Category" } } } }
+        }
+      },
+      "delete": {
+        "operationId": "deleteCategory",
+        "summary": "Delete a category",
+        "description": "Deletes a category.",
+        "tags": ["Categories"],
+        "responses": {
+          "204": { "description": "Deleted" }
+        }
+      }
+    },
+    "/v1/categories/{categoryId}/refresh": {
+      "parameters": [{ "$ref": "#/components/parameters/CategoryId" }],
+      "put": {
+        "operationId": "refreshCategory",
+        "summary": "Refresh all feeds in a category",
+        "description": "Triggers a refresh of all feeds that belong to the given category.",
+        "tags": ["Categories", "Feeds"],
+        "responses": {
+          "204": { "description": "Refresh scheduled" }
+        }
+      }
+    },
+    "/v1/categories/{categoryId}/mark-all-as-read": {
+      "parameters": [{ "$ref": "#/components/parameters/CategoryId" }],
+      "put": {
+        "operationId": "markCategoryEntriesAsRead",
+        "summary": "Mark all category entries as read",
+        "description": "Marks all entries in the given category as read.",
+        "tags": ["Categories", "Entries"],
+        "responses": {
+          "204": { "description": "Marked as read" }
+        }
+      }
+    },
+    "/v1/categories/{categoryId}/feeds": {
+      "parameters": [{ "$ref": "#/components/parameters/CategoryId" }],
+      "get": {
+        "operationId": "getCategoryFeeds",
+        "summary": "List feeds in a category",
+        "description": "Returns all feeds belonging to the given category.",
+        "tags": ["Categories", "Feeds"],
+        "responses": {
+          "200": { "description": "List of feeds", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Feed" } } } } }
+        }
+      }
+    },
+    "/v1/categories/{categoryId}/entries": {
+      "parameters": [{ "$ref": "#/components/parameters/CategoryId" }],
+      "get": {
+        "operationId": "getCategoryEntries",
+        "summary": "List entries in a category",
+        "description": "Returns entries that belong to the given category, with optional filtering and pagination.",
+        "tags": ["Categories", "Entries"],
+        "parameters": [
+          { "$ref": "#/components/parameters/StatusParam" },
+          { "$ref": "#/components/parameters/OffsetParam" },
+          { "$ref": "#/components/parameters/LimitParam" },
+          { "$ref": "#/components/parameters/OrderParam" },
+          { "$ref": "#/components/parameters/DirectionParam" },
+          { "$ref": "#/components/parameters/StarredParam" },
+          { "$ref": "#/components/parameters/SearchParam" },
+          { "$ref": "#/components/parameters/AfterEntryIdParam" },
+          { "$ref": "#/components/parameters/BeforeEntryIdParam" },
+          { "$ref": "#/components/parameters/AfterParam" },
+          { "$ref": "#/components/parameters/BeforeParam" },
+          { "$ref": "#/components/parameters/PublishedAfterParam" },
+          { "$ref": "#/components/parameters/PublishedBeforeParam" }
+        ],
+        "responses": {
+          "200": { "description": "Paginated entries", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/EntryCollection" } } } }
+        }
+      }
+    },
+    "/v1/categories/{categoryId}/entries/{entryId}": {
+      "parameters": [
+        { "$ref": "#/components/parameters/CategoryId" },
+        { "$ref": "#/components/parameters/EntryId" }
+      ],
+      "get": {
+        "operationId": "getCategoryEntry",
+        "summary": "Get an entry in a category",
+        "description": "Fetches a single entry that belongs to the given category.",
+        "tags": ["Categories", "Entries"],
+        "responses": {
+          "200": { "description": "The entry", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Entry" } } } }
+        }
+      }
+    },
+    "/v1/feeds": {
+      "get": {
+        "operationId": "getFeeds",
+        "summary": "List all feeds",
+        "description": "Returns all feeds for the authenticated user.",
+        "tags": ["Feeds"],
+        "responses": {
+          "200": { "description": "List of feeds", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Feed" } } } } }
+        }
+      },
+      "post": {
+        "operationId": "createFeed",
+        "summary": "Create (subscribe to) a feed",
+        "description": "Subscribes to a new feed. Returns the new feed ID. Additional options (crawler, user_agent, etc.) can be passed in the body.",
+        "tags": ["Feeds"],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/FeedCreate" } } }
+        },
+        "responses": {
+          "201": { "description": "Feed created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/FeedCreated" } } } }
+        }
+      },
+      "put": {
+        "operationId": "updateEntries",
+        "summary": "Update status of multiple entries",
+        "description": "Changes the status (read, unread, removed) of a set of entries.",
+        "tags": ["Entries"],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/EntriesUpdate" } } }
+        },
+        "responses": {
+          "200": { "description": "Updated" }
+        }
+      }
+    },
+    "/v1/feeds/{feedId}": {
+      "parameters": [{ "$ref": "#/components/parameters/FeedId" }],
+      "get": {
+        "operationId": "getFeed",
+        "summary": "Get a feed",
+        "description": "Returns a single feed by ID.",
+        "tags": ["Feeds"],
+        "responses": {
+          "200": { "description": "The feed", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Feed" } } } }
+        }
+      },
+      "put": {
+        "operationId": "updateFeed",
+        "summary": "Update a feed",
+        "description": "Updates feed properties (e.g. category_id, title, crawler, user_agent).",
+        "tags": ["Feeds"],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/FeedUpdate" } } }
+        },
+        "responses": {
+          "201": { "description": "Updated feed", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Feed" } } } }
+        }
+      },
+      "delete": {
+        "operationId": "deleteFeed",
+        "summary": "Delete (unsubscribe from) a feed",
+        "description": "Removes a feed subscription.",
+        "tags": ["Feeds"],
+        "responses": {
+          "204": { "description": "Deleted" }
+        }
+      }
+    },
+    "/v1/feeds/refresh": {
+      "put": {
+        "operationId": "refreshAllFeeds",
+        "summary": "Refresh all feeds",
+        "description": "Triggers a refresh of all feeds for the authenticated user.",
+        "tags": ["Feeds"],
+        "responses": {
+          "204": { "description": "Refresh scheduled" }
+        }
+      }
+    },
+    "/v1/feeds/{feedId}/refresh": {
+      "parameters": [{ "$ref": "#/components/parameters/FeedId" }],
+      "put": {
+        "operationId": "refreshFeed",
+        "summary": "Refresh a feed",
+        "description": "Triggers a refresh of a single feed.",
+        "tags": ["Feeds"],
+        "responses": {
+          "204": { "description": "Refresh scheduled" }
+        }
+      }
+    },
+    "/v1/feeds/{feedId}/icon": {
+      "parameters": [{ "$ref": "#/components/parameters/FeedId" }],
+      "get": {
+        "operationId": "getFeedIcon",
+        "summary": "Get a feed icon",
+        "description": "Returns the icon associated with a feed.",
+        "tags": ["Feeds"],
+        "responses": {
+          "200": { "description": "The feed icon", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Icon" } } } }
+        }
+      }
+    },
+    "/v1/feeds/{feedId}/mark-all-as-read": {
+      "parameters": [{ "$ref": "#/components/parameters/FeedId" }],
+      "put": {
+        "operationId": "markFeedEntriesAsRead",
+        "summary": "Mark all feed entries as read",
+        "description": "Marks all entries in the given feed as read.",
+        "tags": ["Feeds", "Entries"],
+        "responses": {
+          "204": { "description": "Marked as read" }
+        }
+      }
+    },
+    "/v1/feeds/{feedId}/entries": {
+      "parameters": [{ "$ref": "#/components/parameters/FeedId" }],
+      "get": {
+        "operationId": "getFeedEntries",
+        "summary": "List entries of a feed",
+        "description": "Returns entries that belong to the given feed, with optional filtering and pagination.",
+        "tags": ["Feeds", "Entries"],
+        "parameters": [
+          { "$ref": "#/components/parameters/StatusParam" },
+          { "$ref": "#/components/parameters/OffsetParam" },
+          { "$ref": "#/components/parameters/LimitParam" },
+          { "$ref": "#/components/parameters/OrderParam" },
+          { "$ref": "#/components/parameters/DirectionParam" },
+          { "$ref": "#/components/parameters/StarredParam" },
+          { "$ref": "#/components/parameters/SearchParam" },
+          { "$ref": "#/components/parameters/AfterEntryIdParam" },
+          { "$ref": "#/components/parameters/BeforeEntryIdParam" },
+          { "$ref": "#/components/parameters/AfterParam" },
+          { "$ref": "#/components/parameters/BeforeParam" },
+          { "$ref": "#/components/parameters/PublishedAfterParam" },
+          { "$ref": "#/components/parameters/PublishedBeforeParam" }
+        ],
+        "responses": {
+          "200": { "description": "Paginated entries", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/EntryCollection" } } } }
+        }
+      },
+      "post": {
+        "operationId": "importEntry",
+        "summary": "Import an entry into a feed",
+        "description": "Imports a single entry into the given feed. The entry URL is required; all other fields are optional.",
+        "tags": ["Feeds", "Entries"],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/EntryImport" } } }
+        },
+        "responses": {
+          "200": { "description": "Imported / existing entry", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/EntryImportResult" } } } },
+          "201": { "description": "Created entry", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/EntryImportResult" } } } }
+        }
+      }
+    },
+    "/v1/feeds/{feedId}/entries/{entryId}": {
+      "parameters": [
+        { "$ref": "#/components/parameters/FeedId" },
+        { "$ref": "#/components/parameters/EntryId" }
+      ],
+      "get": {
+        "operationId": "getFeedEntry",
+        "summary": "Get an entry of a feed",
+        "description": "Fetches a single entry that belongs to the given feed.",
+        "tags": ["Feeds", "Entries"],
+        "responses": {
+          "200": { "description": "The entry", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Entry" } } } }
+        }
+      }
+    },
+    "/v1/feeds/counters": {
+      "get": {
+        "operationId": "getFeedCounters",
+        "summary": "Get feed counters",
+        "description": "Returns the number of read and unread entries per feed.",
+        "tags": ["Feeds"],
+        "responses": {
+          "200": { "description": "Per-feed read/unread counters", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/FeedCounters" } } } }
+        }
+      }
+    },
+    "/v1/entries": {
+      "get": {
+        "operationId": "getEntries",
+        "summary": "List entries",
+        "description": "Returns entries across all feeds, with optional filtering, ordering, and pagination.",
+        "tags": ["Entries"],
+        "parameters": [
+          { "$ref": "#/components/parameters/StatusParam" },
+          { "$ref": "#/components/parameters/OffsetParam" },
+          { "$ref": "#/components/parameters/LimitParam" },
+          { "$ref": "#/components/parameters/OrderParam" },
+          { "$ref": "#/components/parameters/DirectionParam" },
+          { "$ref": "#/components/parameters/StarredParam" },
+          { "$ref": "#/components/parameters/SearchParam" },
+          { "$ref": "#/components/parameters/AfterEntryIdParam" },
+          { "$ref": "#/components/parameters/BeforeEntryIdParam" },
+          { "$ref": "#/components/parameters/AfterParam" },
+          { "$ref": "#/components/parameters/BeforeParam" },
+          { "$ref": "#/components/parameters/PublishedAfterParam" },
+          { "$ref": "#/components/parameters/PublishedBeforeParam" },
+          { "$ref": "#/components/parameters/CategoryIdParam" },
+          { "$ref": "#/components/parameters/FeedIdQueryParam" },
+          { "$ref": "#/components/parameters/TagsParam" }
+        ],
+        "responses": {
+          "200": { "description": "Paginated entries", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/EntryCollection" } } } }
+        }
+      }
+    },
+    "/v1/entries/{entryId}": {
+      "parameters": [{ "$ref": "#/components/parameters/EntryId" }],
+      "get": {
+        "operationId": "getEntry",
+        "summary": "Get an entry",
+        "description": "Fetches a single entry by ID.",
+        "tags": ["Entries"],
+        "responses": {
+          "200": { "description": "The entry", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Entry" } } } }
+        }
+      },
+      "put": {
+        "operationId": "updateEntry",
+        "summary": "Update an entry",
+        "description": "Updates the title and/or content of an entry.",
+        "tags": ["Entries"],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/EntryUpdate" } } }
+        },
+        "responses": {
+          "201": { "description": "Updated entry", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Entry" } } } }
+        }
+      }
+    },
+    "/v1/entries/{entryId}/fetch-content": {
+      "parameters": [{ "$ref": "#/components/parameters/EntryId" }],
+      "get": {
+        "operationId": "fetchEntryContent",
+        "summary": "Fetch (scrape) entry content",
+        "description": "Scrapes the entry's original URL and returns the freshly extracted content.",
+        "tags": ["Entries"],
+        "responses": {
+          "200": { "description": "Scraped content", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/EntryContent" } } } }
+        }
+      }
+    },
+    "/v1/entries/{entryId}/bookmark": {
+      "parameters": [{ "$ref": "#/components/parameters/EntryId" }],
+      "put": {
+        "operationId": "toggleBookmark",
+        "summary": "Toggle entry bookmark (star)",
+        "description": "Stars or unstars an entry.",
+        "tags": ["Entries"],
+        "responses": {
+          "200": { "description": "Toggled" }
+        }
+      }
+    },
+    "/v1/entries/{entryId}/save": {
+      "parameters": [{ "$ref": "#/components/parameters/EntryId" }],
+      "post": {
+        "operationId": "saveEntry",
+        "summary": "Save an entry to a third-party service",
+        "description": "Queues the entry to be sent to a configured third-party integration. The operation is asynchronous.",
+        "tags": ["Entries"],
+        "responses": {
+          "202": { "description": "Save queued" }
+        }
+      }
+    },
+    "/v1/icons/{iconId}": {
+      "parameters": [{ "$ref": "#/components/parameters/IconId" }],
+      "get": {
+        "operationId": "getIcon",
+        "summary": "Get an icon by ID",
+        "description": "Returns a feed icon by its icon ID.",
+        "tags": ["Feeds"],
+        "responses": {
+          "200": { "description": "The icon", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Icon" } } } }
+        }
+      }
+    },
+    "/v1/enclosures/{enclosureId}": {
+      "parameters": [{ "$ref": "#/components/parameters/EnclosureId" }],
+      "get": {
+        "operationId": "getEnclosure",
+        "summary": "Get an enclosure",
+        "description": "Returns a media enclosure (podcast/attachment) by ID.",
+        "tags": ["Enclosures"],
+        "responses": {
+          "200": { "description": "The enclosure", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Enclosure" } } } }
+        }
+      },
+      "put": {
+        "operationId": "updateEnclosure",
+        "summary": "Update enclosure media progression",
+        "description": "Updates the playback/reading progression of a media enclosure.",
+        "tags": ["Enclosures"],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/EnclosureUpdate" } } }
+        },
+        "responses": {
+          "204": { "description": "Updated" }
+        }
+      }
+    },
+    "/v1/users": {
+      "get": {
+        "operationId": "getUsers",
+        "summary": "List users",
+        "description": "Returns all users. Requires administrator privileges.",
+        "tags": ["Users"],
+        "responses": {
+          "200": { "description": "List of users", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/User" } } } } }
+        }
+      },
+      "post": {
+        "operationId": "createUser",
+        "summary": "Create a user",
+        "description": "Creates a new user. Requires administrator privileges.",
+        "tags": ["Users"],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UserCreate" } } }
+        },
+        "responses": {
+          "201": { "description": "Created user", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/User" } } } }
+        }
+      }
+    },
+    "/v1/users/{userId}": {
+      "parameters": [{ "$ref": "#/components/parameters/UserId" }],
+      "get": {
+        "operationId": "getUser",
+        "summary": "Get a user",
+        "description": "Fetches a single user by numeric ID or username.",
+        "tags": ["Users"],
+        "responses": {
+          "200": { "description": "The user", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/User" } } } }
+        }
+      },
+      "put": {
+        "operationId": "updateUser",
+        "summary": "Update a user",
+        "description": "Updates user attributes (any subset of user fields).",
+        "tags": ["Users"],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UserUpdate" } } }
+        },
+        "responses": {
+          "201": { "description": "Updated user", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/User" } } } }
+        }
+      },
+      "delete": {
+        "operationId": "deleteUser",
+        "summary": "Delete a user",
+        "description": "Removes a user.",
+        "tags": ["Users"],
+        "responses": {
+          "204": { "description": "Deleted" }
+        }
+      }
+    },
+    "/v1/users/{userId}/mark-all-as-read": {
+      "parameters": [{ "$ref": "#/components/parameters/UserId" }],
+      "put": {
+        "operationId": "markUserEntriesAsRead",
+        "summary": "Mark all user entries as read",
+        "description": "Marks all entries of the given user as read.",
+        "tags": ["Users", "Entries"],
+        "responses": {
+          "204": { "description": "Marked as read" }
+        }
+      }
+    },
+    "/v1/api-keys": {
+      "get": {
+        "operationId": "getApiKeys",
+        "summary": "List API keys",
+        "description": "Returns all API keys for the authenticated user.",
+        "tags": ["API Keys"],
+        "responses": {
+          "200": { "description": "List of API keys", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/ApiKey" } } } } }
+        }
+      },
+      "post": {
+        "operationId": "createApiKey",
+        "summary": "Create an API key",
+        "description": "Creates a new API key for the authenticated user.",
+        "tags": ["API Keys"],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiKeyCreate" } } }
+        },
+        "responses": {
+          "201": { "description": "Created API key", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiKey" } } } }
+        }
+      }
+    },
+    "/v1/api-keys/{apiKeyId}": {
+      "parameters": [{ "$ref": "#/components/parameters/ApiKeyId" }],
+      "delete": {
+        "operationId": "deleteApiKey",
+        "summary": "Delete an API key",
+        "description": "Revokes and removes an API key by ID.",
+        "tags": ["API Keys"],
+        "responses": {
+          "204": { "description": "Deleted" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Auth-Token",
+        "description": "API key token (preferred)."
+      },
+      "BasicAuth": {
+        "type": "http",
+        "scheme": "basic",
+        "description": "HTTP Basic authentication with username and password."
+      }
+    },
+    "parameters": {
+      "CategoryId": { "name": "categoryId", "in": "path", "required": true, "schema": { "type": "integer" }, "description": "Category ID" },
+      "FeedId": { "name": "feedId", "in": "path", "required": true, "schema": { "type": "integer" }, "description": "Feed ID" },
+      "EntryId": { "name": "entryId", "in": "path", "required": true, "schema": { "type": "integer" }, "description": "Entry ID" },
+      "IconId": { "name": "iconId", "in": "path", "required": true, "schema": { "type": "integer" }, "description": "Icon ID" },
+      "EnclosureId": { "name": "enclosureId", "in": "path", "required": true, "schema": { "type": "integer" }, "description": "Enclosure ID" },
+      "UserId": { "name": "userId", "in": "path", "required": true, "schema": { "oneOf": [ { "type": "integer" }, { "type": "string" } ] }, "description": "User ID (numeric) or username" },
+      "ApiKeyId": { "name": "apiKeyId", "in": "path", "required": true, "schema": { "type": "integer" }, "description": "API key ID" },
+      "EntryQuery": {
+        "name": "query",
+        "in": "query",
+        "description": "Filtering, ordering, and pagination parameters for entry listings.",
+        "schema": { "type": "object" },
+        "examples": {},
+        "deprecated": true
+      },
+      "StatusParam": { "name": "status", "in": "query", "required": false, "description": "Filter by entry status. May be repeated for multiple values (e.g. status=read&status=unread).", "schema": { "oneOf": [ { "type": "string", "enum": ["read", "unread", "removed"] }, { "type": "array", "items": { "type": "string", "enum": ["read", "unread", "removed"] } } ] } },
+      "OffsetParam": { "name": "offset", "in": "query", "required": false, "schema": { "type": "integer", "minimum": 0 } },
+      "LimitParam": { "name": "limit", "in": "query", "required": false, "schema": { "type": "integer", "minimum": 1 } },
+      "OrderParam": { "name": "order", "in": "query", "required": false, "description": "Sort field for entries.", "schema": { "type": "string", "enum": ["id", "status", "published_at", "updated_at", "created_at"] } },
+      "DirectionParam": { "name": "direction", "in": "query", "required": false, "schema": { "type": "string", "enum": ["asc", "desc"] } },
+      "StarredParam": { "name": "starred", "in": "query", "required": false, "schema": { "type": "boolean" } },
+      "SearchParam": { "name": "search", "in": "query", "required": false, "schema": { "type": "string" } },
+      "AfterEntryIdParam": { "name": "after_entry_id", "in": "query", "required": false, "description": "Return entries with ID greater than this value (forward pagination).", "schema": { "type": "integer" } },
+      "BeforeEntryIdParam": { "name": "before_entry_id", "in": "query", "required": false, "description": "Return entries with ID less than this value (backward pagination).", "schema": { "type": "integer" } },
+      "AfterParam": { "name": "after", "in": "query", "required": false, "description": "Entries published after this Unix timestamp.", "schema": { "type": "integer", "format": "int64" } },
+      "BeforeParam": { "name": "before", "in": "query", "required": false, "description": "Entries published before this Unix timestamp.", "schema": { "type": "integer", "format": "int64" } },
+      "PublishedAfterParam": { "name": "published_after", "in": "query", "required": false, "schema": { "type": "integer", "format": "int64" } },
+      "PublishedBeforeParam": { "name": "published_before", "in": "query", "required": false, "schema": { "type": "integer", "format": "int64" } },
+      "CategoryIdParam": { "name": "category_id", "in": "query", "required": false, "description": "Filter entries by category. May be repeated for multiple categories.", "schema": { "oneOf": [ { "type": "integer" }, { "type": "array", "items": { "type": "integer" } } ] } },
+      "FeedIdQueryParam": { "name": "feed_id", "in": "query", "required": false, "description": "Filter entries by feed. May be repeated for multiple feeds.", "schema": { "oneOf": [ { "type": "integer" }, { "type": "array", "items": { "type": "integer" } } ] } },
+      "TagsParam": { "name": "tags", "in": "query", "required": false, "description": "Filter entries by tags. May be repeated for multiple tags.", "schema": { "oneOf": [ { "type": "string" }, { "type": "array", "items": { "type": "string" } } ] } }
+    },
+    "schemas": {
+      "Version": {
+        "type": "object",
+        "properties": {
+          "version": { "type": "string" },
+          "commit": { "type": "string" },
+          "build_date": { "type": "string" },
+          "go_version": { "type": "string" },
+          "compiler": { "type": "string" }
+        }
+      },
+      "IntegrationsStatus": {
+        "type": "object",
+        "properties": { "has_integrations": { "type": "boolean" } }
+      },
+      "ImportResult": {
+        "type": "object",
+        "properties": { "message": { "type": "string" } }
+      },
+      "DiscoverRequest": {
+        "type": "object",
+        "required": ["url"],
+        "properties": {
+          "url": { "type": "string", "description": "Website URL to discover feeds from." },
+          "username": { "type": "string" },
+          "password": { "type": "string" },
+          "user_agent": { "type": "string" },
+          "fetch_via_proxy": { "type": "boolean" },
+          "fetch_via_proxy_url": { "type": "string" }
+        }
+      },
+      "Subscription": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "url": { "type": "string" },
+          "type": { "type": "string" }
+        }
+      },
+      "Category": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "title": { "type": "string" },
+          "user_id": { "type": "integer" }
+        }
+      },
+      "CategoryCreate": {
+        "type": "object",
+        "required": ["title"],
+        "properties": { "title": { "type": "string" } }
+      },
+      "CategoryUpdate": {
+        "type": "object",
+        "required": ["title"],
+        "properties": {
+          "id": { "type": "integer" },
+          "title": { "type": "string" }
+        }
+      },
+      "Feed": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "user_id": { "type": "integer" },
+          "category": { "$ref": "#/components/schemas/Category" },
+          "title": { "type": "string" },
+          "feed_url": { "type": "string" },
+          "site_url": { "type": "string" },
+          "checked_at": { "type": "string", "format": "date-time" },
+          "next_check_at": { "type": "string", "format": "date-time" },
+          "etag_header": { "type": "string" },
+          "last_modified_header": { "type": "string" },
+          "parsing_error_count": { "type": "integer" },
+          "parsing_error_message": { "type": "string" },
+          "scraper_rules": { "type": "string" },
+          "rewrite_rules": { "type": "string" },
+          "crawler": { "type": "boolean" },
+          "user_agent": { "type": "string" },
+          "username": { "type": "string" },
+          "password": { "type": "string" },
+          "disabled": { "type": "boolean" },
+          "ignore_http_cache": { "type": "boolean" },
+          "allow_self_signed_certificates": { "type": "boolean" },
+          "fetch_via_proxy": { "type": "boolean" },
+          "proxy_url": { "type": "string" },
+          "blocklist_rules": { "type": "string" },
+          "keeplist_rules": { "type": "string" },
+          "url_rewrite_rules": { "type": "string" },
+          "disable_http2": { "type": "boolean" }
+        }
+      },
+      "FeedCreate": {
+        "type": "object",
+        "required": ["feed_url"],
+        "properties": {
+          "feed_url": { "type": "string" },
+          "category_id": { "type": "integer" },
+          "crawler": { "type": "boolean" },
+          "user_agent": { "type": "string" },
+          "username": { "type": "string" },
+          "password": { "type": "string" },
+          "scraper_rules": { "type": "string" },
+          "rewrite_rules": { "type": "string" },
+          "disabled": { "type": "boolean" },
+          "ignore_http_cache": { "type": "boolean" },
+          "allow_self_signed_certificates": { "type": "boolean" },
+          "fetch_via_proxy": { "type": "boolean" },
+          "blocklist_rules": { "type": "string" },
+          "keeplist_rules": { "type": "string" },
+          "url_rewrite_rules": { "type": "string" },
+          "disable_http2": { "type": "boolean" }
+        }
+      },
+      "FeedUpdate": {
+        "type": "object",
+        "properties": {
+          "category_id": { "type": "integer" },
+          "title": { "type": "string" },
+          "feed_url": { "type": "string" },
+          "site_url": { "type": "string" },
+          "scraper_rules": { "type": "string" },
+          "rewrite_rules": { "type": "string" },
+          "crawler": { "type": "boolean" },
+          "user_agent": { "type": "string" },
+          "username": { "type": "string" },
+          "password": { "type": "string" },
+          "disabled": { "type": "boolean" },
+          "ignore_http_cache": { "type": "boolean" },
+          "allow_self_signed_certificates": { "type": "boolean" },
+          "fetch_via_proxy": { "type": "boolean" },
+          "proxy_url": { "type": "string" },
+          "blocklist_rules": { "type": "string" },
+          "keeplist_rules": { "type": "string" },
+          "url_rewrite_rules": { "type": "string" },
+          "disable_http2": { "type": "boolean" }
+        }
+      },
+      "FeedCreated": {
+        "type": "object",
+        "properties": { "feed_id": { "type": "integer" } }
+      },
+      "FeedCounters": {
+        "type": "object",
+        "description": "Mapping of feed ID (as string) to [read, unread] counts.",
+        "additionalProperties": {
+          "type": "array",
+          "items": { "type": "integer" },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      },
+      "Icon": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "mime_type": { "type": "string" },
+          "data": { "type": "string", "description": "Base64-encoded icon data" }
+        }
+      },
+      "Enclosure": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "user_id": { "type": "integer" },
+          "entry_id": { "type": "integer" },
+          "url": { "type": "string" },
+          "mime_type": { "type": "string" },
+          "size": { "type": "integer" },
+          "media_progression": { "type": "integer" }
+        }
+      },
+      "EnclosureUpdate": {
+        "type": "object",
+        "properties": {
+          "media_progression": { "type": "integer", "description": "Playback/reading progression (bytes or seconds depending on media)." }
+        }
+      },
+      "EntryCollection": {
+        "type": "object",
+        "required": ["total", "entries"],
+        "properties": {
+          "total": { "type": "integer" },
+          "entries": { "type": "array", "items": { "$ref": "#/components/schemas/Entry" } }
+        }
+      },
+      "Entry": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "user_id": { "type": "integer" },
+          "feed_id": { "type": "integer" },
+          "category_id": { "type": "integer" },
+          "status": { "type": "string", "enum": ["read", "unread", "removed"] },
+          "hash": { "type": "string" },
+          "title": { "type": "string" },
+          "url": { "type": "string" },
+          "comments_url": { "type": "string" },
+          "author": { "type": "string" },
+          "content": { "type": "string" },
+          "description": { "type": "string" },
+          "published_at": { "type": "string", "format": "date-time" },
+          "changed_at": { "type": "string", "format": "date-time" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "starred": { "type": "boolean" },
+          "reading_time": { "type": "integer" },
+          "enclosures": { "type": "array", "items": { "$ref": "#/components/schemas/Enclosure" } },
+          "enclosures_overflow": { "type": "boolean" },
+          "tags": { "type": "array", "items": { "type": "string" } },
+          "feed": { "$ref": "#/components/schemas/Feed" },
+          "external_id": { "type": "string" }
+        }
+      },
+      "EntryImport": {
+        "type": "object",
+        "required": ["url"],
+        "properties": {
+          "url": { "type": "string" },
+          "title": { "type": "string" },
+          "author": { "type": "string" },
+          "content": { "type": "string" },
+          "published_at": { "type": "integer", "description": "Publication date as a Unix timestamp." },
+          "status": { "type": "string", "enum": ["read", "unread", "removed"] },
+          "starred": { "type": "boolean" },
+          "tags": { "type": "array", "items": { "type": "string" } },
+          "external_id": { "type": "string" },
+          "comments_url": { "type": "string" }
+        }
+      },
+      "EntryImportResult": {
+        "type": "object",
+        "properties": { "entry_id": { "type": "integer" } }
+      },
+      "EntryUpdate": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "content": { "type": "string" }
+        }
+      },
+      "EntriesUpdate": {
+        "type": "object",
+        "required": ["entry_ids", "status"],
+        "properties": {
+          "entry_ids": { "type": "array", "items": { "type": "integer" } },
+          "status": { "type": "string", "enum": ["read", "unread", "removed"] }
+        }
+      },
+      "EntryContent": {
+        "type": "object",
+        "properties": { "content": { "type": "string" } }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "username": { "type": "string" },
+          "is_admin": { "type": "boolean" },
+          "theme": { "type": "string" },
+          "language": { "type": "string" },
+          "timezone": { "type": "string" },
+          "entry_sort": { "type": "string" },
+          "entries_per_page": { "type": "integer" },
+          "keyboard_shortcuts": { "type": "string" },
+          "show_reading_time": { "type": "boolean" },
+          "starred_entries_only": { "type": "boolean" },
+          "google_reader_username": { "type": "string" },
+          "google_reader_password": { "type": "string" },
+          "display_mode": { "type": "string" },
+          "entry_swipe": { "type": "boolean" },
+          "stylesheet": { "type": "string" },
+          "default_reading_speed": { "type": "integer" },
+          "is_disabled": { "type": "boolean" },
+          "last_login_at": { "type": "string", "format": "date-time" },
+          "extra": { "type": "object" }
+        }
+      },
+      "UserCreate": {
+        "type": "object",
+        "required": ["username", "password"],
+        "properties": {
+          "username": { "type": "string" },
+          "password": { "type": "string" },
+          "is_admin": { "type": "boolean", "default": false }
+        }
+      },
+      "UserUpdate": {
+        "type": "object",
+        "description": "Any subset of user fields to update.",
+        "additionalProperties": true
+      },
+      "ApiKey": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "user_id": { "type": "integer" },
+          "token": { "type": "string" },
+          "description": { "type": "string" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "last_used_at": { "type": "string", "format": "date-time", "nullable": true },
+          "expires_at": { "type": "string", "format": "date-time", "nullable": true }
+        }
+      },
+      "ApiKeyCreate": {
+        "type": "object",
+        "required": ["description"],
+        "properties": { "description": { "type": "string" } }
+      }
+    }
+  },
+  "security": [
+    { "ApiKeyAuth": [] },
+    { "BasicAuth": [] }
+  ]
+}
